@@ -1,0 +1,9 @@
+---------------------------------------------------------------------------------------------------
+Version: 0.1.0
+Date: 2019-12-29
+  Features:
+    - function replaceCarriage:  sneakily swaps any rolling stock entity with another entity of the same type.
+    - function saveGrid, restoreGrid, saveBurner, restoreBurner:  used transfer equipment grids between entities.
+    - function saveItemRequestProxy:  checks for the Item Request Proxy associated with the given entity (fuel, ammo, or module insertion request) and saves it in a format that can be easily recreated on the new entity.
+    - function mapBlueprint, mapPipette:  checks player cursor, cut/copy blueprint, or blueprint item and swaps entity names per the given map.  Useful to prevent non-craftable items from being created or requested.
+	
