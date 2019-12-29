@@ -31,7 +31,6 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy)
 	local health = carriage.health
 	local to_be_deconstructed = carriage.to_be_deconstructed(force)
 	local player_driving = carriage.get_driver()
-	local kills = carriage.kills
 	local last_user = carriage.last_user
 	
 	-- Save equipment grid contents
@@ -42,6 +41,12 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy)
 	
 	-- Save the burner progress
 	local saved_burner = save_restore.saveBurner(carriage.burner)
+	
+	-- Save the kills stat for artillery wagons
+	local kills = nil
+	if carriage.type == "artillery-wagon" then
+		kills = carriage.kills
+	end
 	
 	-- Save the artillery wagon ammunition inventory
 	local ammo_inventory = nil
