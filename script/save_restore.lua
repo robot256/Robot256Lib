@@ -22,15 +22,19 @@ function saveBurner(burner)
 end
 
 function restoreBurner(target,saved)
-  target.heat = saved.heat
-  target.currently_burning = saved.currently_burning
-  target.remaining_burning_fuel = saved.remaining_burning_fuel
-  for k,v in pairs(saved.inventory) do
-    target.inventory.insert({name=k, count=v})
-  end
-  if ( saved.burnt_result_inventory ) then
-    for k,v in pairs(saved.burnt_result_inventory) do
-      target.burnt_result_inventory.insert({name=k, count=v})
+  if target and target.valid and saved then
+    target.heat = saved.heat
+    target.currently_burning = saved.currently_burning
+    target.remaining_burning_fuel = saved.remaining_burning_fuel
+    if saved.inventory then
+      for k,v in pairs(saved.inventory) do
+        target.inventory.insert({name=k, count=v})
+      end
+    end
+    if ( saved.burnt_result_inventory ) then
+      for k,v in pairs(saved.burnt_result_inventory) do
+        target.burnt_result_inventory.insert({name=k, count=v})
+      end
     end
   end
 end
@@ -84,10 +88,12 @@ function saveInventory(sourceInventory)
   end
 end
 
-function restoreInventory(targetEntity, items)
-  for name, count in pairs(items) do
-    if game.item_prototypes[name] then
-      targetEntity.insert{name = name, count = count}
+function restoreInventory(target, items)
+  if target and target.valid and items then
+    for name, count in pairs(items) do
+      if game.item_prototypes[name] then
+        target.insert{name = name, count = count}
+      end
     end
   end
 end
