@@ -99,6 +99,26 @@ function restoreInventory(target, items)
 end
 
 
+function saveFilters(source)
+  local filters = nil
+  if source and source.valid and source.is_filtered() then
+    filters = {}
+    for f = 1, #source do
+      filters[f] = source.get_filter(f)
+    end
+  end
+  return filters
+end
+
+function restoreFilters(target, filters)
+  if target and target.valid and target.supports_filters() and filters then
+    for f = 1, #target do
+      target.set_filter(f, filters[f])
+    end
+  end
+end
+
+
 function saveItemRequestProxy(target)
   -- Search for item_request_proxy ghosts targeting this entity
   local proxies = target.surface.find_entities_filtered({
@@ -125,5 +145,7 @@ return {saveBurner = saveBurner,
     restoreGrid = restoreGrid,
     saveInventory = saveInventory,
     restoreInventory = restoreInventory,
+    saveFilters = saveFilters,
+    restoreFilters = restoreFilters,
     saveItemRequestProxy = saveItemRequestProxy,
   }
