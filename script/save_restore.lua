@@ -75,12 +75,25 @@ function restoreGrid(grid,savedItems,player_index)
 end
 
 
-function saveInventory(sourceInventory)
-  if sourceInventory and sourceInventory.valid then
+function saveInventory(source)
+  if source and source.valid then
     local items = {}
-    for name, count in pairs(sourceInventory.get_contents()) do
+    for name, count in pairs(source.get_contents()) do
       items[name] = items[name] or 0
       items[name] = items[name] + count
+      local stack = source.find_item_stack(name)
+      local magazine = stack.prototype.magazine_size
+      local durability = stack.prototype.durability
+      while stack and magazine do
+        items[name] = items[name] + (stack.ammo - magazine)/magazine
+        source.remove(stack)
+        stack = source.find_item_stack(name)
+      end
+      while stack and durability do
+        items[name] = items[name] + (stack.durability - durability)/durability
+        source.remove(stack)
+        stack = source.find_item_stack(name)
+      end
     end
     return items
   else
@@ -92,7 +105,17 @@ function restoreInventory(target, items)
   if target and target.valid and items then
     for name, count in pairs(items) do
       if game.item_prototypes[name] then
-        target.insert{name = name, count = count}
+        target.insert{name = name, count = math.ceil(count)}  -- insert integer items
+        local stack = target.find_item_stack(name)  -- apply fractional value to any stack of this type
+        local magazine = stack.prototype.magazine_size  -- nil if not ammo
+        local durability = stack.prototype.durability  -- nil if not durable
+        local f
+        _,f = math.modf(count)  -- find fractional value of last item
+        if magazine and f > 0 then
+          stack.ammo = math.floor(f*magazine+0.5)  -- set ammo to fractional value
+        elseif durability and f > 0 then
+          stack.durability = math.floor(f*durability+0.5)  -- set durability to fractional value
+        end
       end
     end
   end
@@ -101,19 +124,30 @@ end
 
 function saveFilters(source)
   local filters = nil
-  if source and source.valid and source.is_filtered() then
-    filters = {}
-    for f = 1, #source do
-      filters[f] = source.get_filter(f)
+  if source and source.valid then
+    if source.is_filtered() then
+      filters = {}
+      for f = 1, #source do
+        filters[f] = source.get_filter(f)
+      end
+    end
+    if source.hasbar() and source.getbar() then
+      filters = filters or {}
+      filters.bar = source.getbar()
     end
   end
   return filters
 end
 
 function restoreFilters(target, filters)
-  if target and target.valid and target.supports_filters() and filters then
-    for f = 1, #target do
-      target.set_filter(f, filters[f])
+  if target and target.valid then
+    if target.supports_filters() and filters then
+      for f = 1, #target do
+        target.set_filter(f, filters[f])
+      end
+    end
+    if target.hasbar() and filters.bar then
+      target.setbar(filters.bar)
     end
   end
 end
