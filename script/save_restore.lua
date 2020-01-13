@@ -101,24 +101,34 @@ function saveInventory(source)
   end
 end
 
+function insertItem(target, name, count, stack_size)
+  local proto = game.item_prototypes[name]
+  local c = 0
+  if proto then
+    if not stack_size or stack_size > proto.stack_size then
+      stack_size = proto.stack_size
+    end
+    c = math.min(stack_size, math.ceil(count))
+    local stack = {name=name, count=c}
+    if c >= count then
+      -- Last insertion, handle partial items
+      _,f = math.modf(count)  -- find fractional value of last item
+      if f > 0 then
+        local magazine_size = proto.magazine_size  -- nil if not ammo
+        local durability = proto.durability  -- nil if not durable
+        if magazine_size then stack.ammo = math.floor(f*magazine_size+0.5)  -- set ammo to fractional value
+        elseif durability then stack.durability = math.floor(f*durability+0.5) end -- set durability to fractional value
+      end
+    end
+    c = target.insert(stack)
+  end
+  return c
+end
+
 function restoreInventory(target, items)
   if target and target.valid and items then
     for name, count in pairs(items) do
-      local proto = game.item_prototypes[name]
-      if proto then
-        local stack = {name=name, count=math.ceil(count)}
-        _,f = math.modf(count)  -- find fractional value of last item
-        if f > 0 then
-          local magazine = proto.magazine_size  -- nil if not ammo
-          local durability = proto.durability  -- nil if not durable
-          if magazine then
-            stack.ammo = math.floor(f*magazine+0.5)  -- set ammo to fractional value
-          elseif durability then
-            stack.durability = math.floor(f*durability+0.5)  -- set durability to fractional value
-          end
-        end
-        target.insert(stack)
-      end
+      insertItem(target, name, count)
     end
   end
 end
@@ -180,6 +190,7 @@ return {saveBurner = saveBurner,
     saveGrid = saveGrid,
     restoreGrid = restoreGrid,
     saveInventory = saveInventory,
+    insertItem = insertItem,
     restoreInventory = restoreInventory,
     saveFilters = saveFilters,
     restoreFilters = restoreFilters,
