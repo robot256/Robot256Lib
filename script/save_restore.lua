@@ -101,23 +101,23 @@ function saveInventory(source)
   end
 end
 
-function restoreInventory(target, items, isEntity)
+function restoreInventory(target, items)
   if target and target.valid and items then
     for name, count in pairs(items) do
-      if game.item_prototypes[name] then
-        target.insert{name = name, count = math.ceil(count)}  -- insert integer items
-        if not isEntity then
-          local stack = target.find_item_stack(name)  -- apply fractional value to any stack of this type
-          local magazine = stack.prototype.magazine_size  -- nil if not ammo
-          local durability = stack.prototype.durability  -- nil if not durable
-          local f
-          _,f = math.modf(count)  -- find fractional value of last item
-          if magazine and f > 0 then
+      local proto = game.item_prototypes[name]
+      if proto then
+        local stack = {name=name, count=math.ceil(count)}
+        _,f = math.modf(count)  -- find fractional value of last item
+        if f > 0 then
+          local magazine = proto.magazine_size  -- nil if not ammo
+          local durability = proto.durability  -- nil if not durable
+          if magazine then
             stack.ammo = math.floor(f*magazine+0.5)  -- set ammo to fractional value
-          elseif durability and f > 0 then
+          elseif durability then
             stack.durability = math.floor(f*durability+0.5)  -- set durability to fractional value
           end
         end
+        target.insert(stack)
       end
     end
   end
