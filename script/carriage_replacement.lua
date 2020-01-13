@@ -19,7 +19,7 @@
 local save_restore = require("__Robot256Lib__/script/save_restore")
 
 
-function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy)
+function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
 	
 	-- Save basic parameters
 	local position = carriage.position
@@ -32,6 +32,11 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy)
 	local to_be_deconstructed = carriage.to_be_deconstructed(force)
 	local player_driving = carriage.get_driver()
 	local last_user = carriage.last_user
+  
+  -- Flip orientation if needed
+  if flip then
+    _,orientation = math.modf(orientation + 0.5)
+  end
 	
 	-- Save equipment grid contents
 	local grid_equipment = save_restore.saveGrid(carriage.grid)
@@ -71,7 +76,7 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy)
 	
 	-- Save its coupling state.  By default, created carriages couple to everything nearby, which we might have to undo
 	--   if we're replacing after intentional uncoupling.
-	local disconnected_back = carriage.disconnect_rolling_stock(defines.rail_direction.back)
+  local disconnected_back = carriage.disconnect_rolling_stock(defines.rail_direction.back)
 	local disconnected_front = carriage.disconnect_rolling_stock(defines.rail_direction.front)
 	
 	-- Destroy the old Locomotive so we have space to make the new one
@@ -93,11 +98,11 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy)
 		return nil
 	end
 	
-	-- Restore coupling state
-	if not disconnected_back then
+	-- Restore coupling state (if we flipped the wagon, couple opposite sides)
+	if ((not flip) and (not disconnected_back)) or (flip and (not disconnected_front)) then
 		newCarriage.disconnect_rolling_stock(defines.rail_direction.back)
 	end
-	if not disconnected_front then
+	if ((not flip) and (not disconnected_front)) or (flip and (not disconnected_back)) then
 		newCarriage.disconnect_rolling_stock(defines.rail_direction.front)
 	end
 	
