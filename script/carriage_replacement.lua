@@ -55,16 +55,20 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
 
   -- Save the artillery wagon ammunition inventory
   local ammo_inventory = nil
+  local ammo_filters = nil
   local ammo_inventory_object = carriage.get_inventory(defines.inventory.artillery_wagon_ammo)
   if( ammo_inventory_object and ammo_inventory_object.valid ) then
-    ammo_inventory = ammo_inventory_object.get_contents()
+    ammo_inventory = saveRestoreLib.saveInventory(ammo_inventory_object)
+    ammo_filters = saveRestoreLib.saveFilters(ammo_inventory_object)
   end
 
   -- Save the cargo wagon inventory
   local cargo_inventory = nil
+  local cargo_filters = nil
   local cargo_inventory_object = carriage.get_inventory(defines.inventory.cargo_wagon)
   if( cargo_inventory_object and cargo_inventory_object.valid ) then
-    cargo_inventory = cargo_inventory_object.get_contents()
+    cargo_inventory = saveRestoreLib.saveInventory(cargo_inventory_object)
+    cargo_filters = saveRestoreLib.saveFilters(cargo_inventory_object)
   end
 
   -- Save the fluid wagon contents
@@ -76,8 +80,8 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
 
   -- Save its coupling state.  By default, created carriages couple to everything nearby, which we might have to undo
   --   if we're replacing after intentional uncoupling.
-  local disconnected_back = carriage.disconnect_rolling_stock(defines.rail_direction.back)
-  local disconnected_front = carriage.disconnect_rolling_stock(defines.rail_direction.front)
+  local back_was_connected = carriage.disconnect_rolling_stock(defines.rail_direction.back)
+  local front_was_connected = carriage.disconnect_rolling_stock(defines.rail_direction.front)
 
   -- Destroy the old Locomotive so we have space to make the new one
   if raiseDestroy == nil then raiseDestroy = true end
@@ -98,13 +102,23 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
     return nil
   end
 
-  -- Restore coupling state (if we flipped the wagon, couple opposite sides)
-  if ((not flip) and (not disconnected_back)) or (flip and (not disconnected_front)) then
-    newCarriage.disconnect_rolling_stock(defines.rail_direction.back)
+  -- Restore coupling state (if we flipped the wagon, uncouple opposite sides)
+  if flip then
+    if not front_was_connected then
+      newCarriage.disconnect_rolling_stock(defines.rail_direction.back)
+    end
+    if not back_was_connected then
+      newCarriage.disconnect_rolling_stock(defines.rail_direction.front)
+    end
+  else
+    if not front_was_connected then
+      newCarriage.disconnect_rolling_stock(defines.rail_direction.front)
+    end
+    if not back_was_connected then
+      newCarriage.disconnect_rolling_stock(defines.rail_direction.back)
+    end
   end
-  if ((not flip) and (not disconnected_front)) or (flip and (not disconnected_back)) then
-    newCarriage.disconnect_rolling_stock(defines.rail_direction.front)
-  end
+
 
   -- Restore parameters
   newCarriage.health = health
@@ -129,17 +143,15 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
   -- Restore the ammo inventory
   newAmmoInventory = newCarriage.get_inventory(defines.inventory.artillery_wagon_ammo)
   if newAmmoInventory and newAmmoInventory.valid then
-    for k,v in pairs(ammo_inventory) do
-      newAmmoInventory.insert({name=k, count=v})
-    end
+    saveRestoreLib.restoreFilters(newAmmoInventory, ammo_filters)
+    saveRestoreLib.restoreInventory(newAmmoInventory, ammo_inventory)
   end
 
   -- Restore the cargo inventory
   newCargoInventory = newCarriage.get_inventory(defines.inventory.cargo_wagon)
   if newCargoInventory and newCargoInventory.valid then
-    for k,v in pairs(cargo_inventory) do
-      newCargoInventory.insert({name=k, count=v})
-    end
+    saveRestoreLib.restoreFilters(newCargoInventory, cargo_filters)
+    saveRestoreLib.restoreInventory(newCargoInventory, cargo_inventory)
   end
 
   -- Restore the fluid wagon contents
