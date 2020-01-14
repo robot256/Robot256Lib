@@ -35,7 +35,7 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
   -- Save deconstruction request by any force
   local deconstruction_request = nil
   for _,f in pairs(game.forces) do
-    if carriage.to_be_deconstructed(f)
+    if carriage.to_be_deconstructed(f) then
       deconstruction_request = f
       break
     end

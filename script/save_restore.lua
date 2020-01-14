@@ -75,24 +75,34 @@ function restoreGrid(grid,savedItems,player_index)
 end
 
 
+local exportable = {["blueprint"]=true,
+                    ["blueprint-book"]=true,
+                    ["upgrade-planner"]=true,
+                    ["deconstruction-planner"]=true,
+                    ["item-with-tags"]=true}
+
 function saveInventory(source)
-  if source and source.valid then
+  if source and source.valid and not source.is_empty() then
     local items = {}
-    for name, count in pairs(source.get_contents()) do
-      items[name] = items[name] or 0
-      items[name] = items[name] + count
-      local stack = source.find_item_stack(name)
-      local magazine = stack.prototype.magazine_size
-      local durability = stack.prototype.durability
-      while stack and magazine do
-        items[name] = items[name] + (stack.ammo - magazine)/magazine
-        source.remove(stack)
-        stack = source.find_item_stack(name)
-      end
-      while stack and durability do
-        items[name] = items[name] + (stack.durability - durability)/durability
-        source.remove(stack)
-        stack = source.find_item_stack(name)
+    for slot = 1, #source do
+      local stack = source[slot]
+      if stack and stack.valid_for_read then
+        local name = stack.name
+        if exportable[name] then
+          items[name] = items[name] or {}
+          table.insert(items[name], stack.export_stack())
+        else
+          items[name] = items[name] or 0
+          items[name] = items[name] + stack.count
+          local magazine_size = stack.prototype.magazine_size
+          local durability = stack.prototype.durability
+          if magazine_size then
+            items[name] = items[name] + (stack.ammo - magazine_size)/magazine_size
+          end
+          if durability then
+            items[name] = items[name] + (stack.durability - durability)/durability
+          end
+        end
       end
     end
     return items
@@ -103,26 +113,50 @@ end
 
 function insertItem(target, name, count, stack_size)
   local proto = game.item_prototypes[name]
-  local c = 0
+  local inserted = 0
   if proto then
     if not stack_size or stack_size > proto.stack_size then
       stack_size = proto.stack_size
     end
-    c = math.min(stack_size, math.ceil(count))
-    local stack = {name=name, count=c}
-    if c >= count then
-      -- Last insertion, handle partial items
-      _,f = math.modf(count)  -- find fractional value of last item
-      if f > 0 then
-        local magazine_size = proto.magazine_size  -- nil if not ammo
-        local durability = proto.durability  -- nil if not durable
-        if magazine_size then stack.ammo = math.floor(f*magazine_size+0.5)  -- set ammo to fractional value
-        elseif durability then stack.durability = math.floor(f*durability+0.5) end -- set durability to fractional value
+    if type(count) == "table" then
+      for _,str in pairs(count) do
+        -- Handle serialized bp/item
+        local i = target.insert({name=name})
+        inserted = inserted + i
+        if i > 0 then
+          local stack = nil
+          for slot = #target, 1, -1 do
+            stack = target[slot]
+            if stack and stack.valid_for_read and stack.name == name then
+              stack = target[slot]
+              break
+            end
+          end
+          if stack then
+            stack.import_stack(str)
+          end
+        end
+      end
+    else
+      while count > 0 do
+        local c = math.min(stack_size, math.ceil(count))
+        local stack = {name=name, count=c}
+        count = count - c
+        if count < 0 then
+          -- Last insertion, handle partial items
+          _,f = math.modf(1 + count)  -- find fractional value of last item
+          if f > 0 then
+            local magazine_size = proto.magazine_size  -- nil if not ammo
+            local durability = proto.durability  -- nil if not durable
+            if magazine_size then stack.ammo = math.floor(f*magazine_size+0.5)  -- set ammo to fractional value
+            elseif durability then stack.durability = math.floor(f*durability+0.5) end -- set durability to fractional value
+          end
+        end
+        inserted = inserted + target.insert(stack)
       end
     end
-    c = target.insert(stack)
   end
-  return c
+  return inserted
 end
 
 function restoreInventory(target, items)
