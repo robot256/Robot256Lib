@@ -29,10 +29,18 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
   local backer_name = carriage.backer_name
   local color = carriage.color
   local health = carriage.health
-  local to_be_deconstructed = carriage.to_be_deconstructed(force)
   local player_driving = carriage.get_driver()
   local last_user = carriage.last_user
-
+  
+  -- Save deconstruction request by any force
+  local deconstruction_request = nil
+  for _,f in pairs(game.forces) do
+    if carriage.to_be_deconstructed(f)
+      deconstruction_request = f
+      break
+    end
+  end
+  
   -- Flip orientation if needed
   if flip then
     _,orientation = math.modf(orientation + 0.5)
@@ -126,8 +134,8 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
   if last_user then newCarriage.last_user = last_user end
   if color then newCarriage.color = color end
   if kills then newCarriage.kills = kills end
-  if to_be_deconstructed == true then
-    newCarriage.order_deconstruction(force)
+  if deconstruction_request then
+    newCarriage.order_deconstruction(deconstruction_request)
   end
 
   -- Restore item_request_proxy by creating a new one
