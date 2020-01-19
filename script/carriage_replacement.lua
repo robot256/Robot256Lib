@@ -16,10 +16,10 @@
  *               saveItemRequestProxy
 --]]
 
-local save_restore = require("__Robot256Lib__/script/save_restore")
+local saveRestoreLib = require("__Robot256Lib__/script/save_restore")
 
 
-function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
+local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
 
   -- Save basic parameters
   local position = carriage.position
@@ -47,13 +47,13 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
   end
 
   -- Save equipment grid contents
-  local grid_equipment = save_restore.saveGrid(carriage.grid)
+  local grid_equipment = saveRestoreLib.saveGrid(carriage.grid)
 
   -- Save item requests left over from a blueprint
-  local item_requests = save_restore.saveItemRequestProxy(carriage)
+  local item_requests = saveRestoreLib.saveItemRequestProxy(carriage)
 
   -- Save the burner progress
-  local saved_burner = save_restore.saveBurner(carriage.burner)
+  local saved_burner = saveRestoreLib.saveBurner(carriage.burner)
 
   -- Save the kills stat for artillery wagons
   local kills = nil
@@ -134,47 +134,27 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
   if last_user then newCarriage.last_user = last_user end
   if color then newCarriage.color = color end
   if kills then newCarriage.kills = kills end
-  if deconstruction_request then
-    newCarriage.order_deconstruction(deconstruction_request)
-  end
-
-  -- Restore item_request_proxy by creating a new one
-  if item_requests then
-    newProxy = surface.create_entity{name="item-request-proxy", position=position, force=force, target=newCarriage, modules=item_requests}
-  end
-
+  
   -- Restore the partially-used burner fuel
   if saved_burner then
-    local remainder = save_restore.restoreBurner(newCarriage.burner, saved_burner)
-    if remainder then
-      for _,stack in pairs(remainder) do
-        saveRestoreLib.spillStack(stack, surface, position)
-      end
-    end
+    local remainders = saveRestoreLib.restoreBurner(newCarriage.burner, saved_burner)
+    saveRestoreLib.spillStacks(remainders)
   end
 
   -- Restore the ammo inventory
   newAmmoInventory = newCarriage.get_inventory(defines.inventory.artillery_wagon_ammo)
   if newAmmoInventory and newAmmoInventory.valid then
     saveRestoreLib.restoreFilters(newAmmoInventory, ammo_filters)
-    local remainder = saveRestoreLib.restoreInventoryStacks(newAmmoInventory, ammo_inventory)
-    if remainder then
-      for _,stack in pairs(remainder) do
-        saveRestoreLib.spillStack(stack, surface, position)
-      end
-    end
+    local remainders = saveRestoreLib.restoreInventoryStacks(newAmmoInventory, ammo_inventory)
+    saveRestoreLib.spillStacks(remainders)
   end
 
   -- Restore the cargo inventory
   newCargoInventory = newCarriage.get_inventory(defines.inventory.cargo_wagon)
   if newCargoInventory and newCargoInventory.valid then
     saveRestoreLib.restoreFilters(newCargoInventory, cargo_filters)
-    local remainder = saveRestoreLib.restoreInventoryStacks(newCargoInventory, cargo_inventory)
-    if remainder then
-      for _,stack in pairs(remainder) do
-        saveRestoreLib.spillStack(stack, surface, position)
-      end
-    end
+    local remainders = saveRestoreLib.restoreInventoryStacks(newCargoInventory, cargo_inventory)
+    saveRestoreLib.spillStacks(remainders)
   end
 
   -- Restore the fluid wagon contents
@@ -184,12 +164,23 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
 
   -- Restore the equipment grid
   if grid_equipment and newCarriage.grid and newCarriage.grid.valid then
-    save_restore.restoreGrid(newCarriage.grid, grid_equipment)
+    local remainders = saveRestoreLib.restoreGrid(newCarriage.grid, grid_equipment)
+    saveRestoreLib.spillStacks(remainders)
   end
 
   -- Restore the player driving
   if player_driving then
     newCarriage.set_driver(player_driving)
+  end
+  
+  -- Restore pending deconstruction order
+  if deconstruction_request then
+    newCarriage.order_deconstruction(deconstruction_request)
+  end
+
+  -- Restore item_request_proxy by creating a new one
+  if item_requests then
+    newProxy = surface.create_entity{name="item-request-proxy", position=position, force=force, target=newCarriage, modules=item_requests}
   end
 
   -- After all that, fire an event so other scripts can reconnect to it
