@@ -66,7 +66,7 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
   local ammo_filters = nil
   local ammo_inventory_object = carriage.get_inventory(defines.inventory.artillery_wagon_ammo)
   if( ammo_inventory_object and ammo_inventory_object.valid ) then
-    ammo_inventory = saveRestoreLib.saveInventory(ammo_inventory_object)
+    ammo_inventory = saveRestoreLib.saveInventoryStacks(ammo_inventory_object)
     ammo_filters = saveRestoreLib.saveFilters(ammo_inventory_object)
   end
 
@@ -75,7 +75,7 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
   local cargo_filters = nil
   local cargo_inventory_object = carriage.get_inventory(defines.inventory.cargo_wagon)
   if( cargo_inventory_object and cargo_inventory_object.valid ) then
-    cargo_inventory = saveRestoreLib.saveInventory(cargo_inventory_object)
+    cargo_inventory = saveRestoreLib.saveInventoryStacks(cargo_inventory_object)
     cargo_filters = saveRestoreLib.saveFilters(cargo_inventory_object)
   end
 
@@ -145,21 +145,36 @@ function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
 
   -- Restore the partially-used burner fuel
   if saved_burner then
-    save_restore.restoreBurner(newCarriage.burner, saved_burner)
+    local remainder = save_restore.restoreBurner(newCarriage.burner, saved_burner)
+    if remainder then
+      for _,stack in pairs(remainder) do
+        saveRestoreLib.spillStack(stack, surface, position)
+      end
+    end
   end
 
   -- Restore the ammo inventory
   newAmmoInventory = newCarriage.get_inventory(defines.inventory.artillery_wagon_ammo)
   if newAmmoInventory and newAmmoInventory.valid then
     saveRestoreLib.restoreFilters(newAmmoInventory, ammo_filters)
-    saveRestoreLib.restoreInventory(newAmmoInventory, ammo_inventory)
+    local remainder = saveRestoreLib.restoreInventoryStacks(newAmmoInventory, ammo_inventory)
+    if remainder then
+      for _,stack in pairs(remainder) do
+        saveRestoreLib.spillStack(stack, surface, position)
+      end
+    end
   end
 
   -- Restore the cargo inventory
   newCargoInventory = newCarriage.get_inventory(defines.inventory.cargo_wagon)
   if newCargoInventory and newCargoInventory.valid then
     saveRestoreLib.restoreFilters(newCargoInventory, cargo_filters)
-    saveRestoreLib.restoreInventory(newCargoInventory, cargo_inventory)
+    local remainder = saveRestoreLib.restoreInventoryStacks(newCargoInventory, cargo_inventory)
+    if remainder then
+      for _,stack in pairs(remainder) do
+        saveRestoreLib.spillStack(stack, surface, position)
+      end
+    end
   end
 
   -- Restore the fluid wagon contents
