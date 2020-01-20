@@ -7,7 +7,10 @@
  * Returns: newLoco entity if successful, nil if unsuccessful
  -]]
 
+require("util")
 
+local __saveGridStacks__ = nil
+local __saveGrid__ = nil
 
 local exportable = {["blueprint"]=true,
                     ["blueprint-book"]=true,
@@ -15,21 +18,6 @@ local exportable = {["blueprint"]=true,
                     ["deconstruction-planner"]=true,
                     ["item-with-tags"]=true}
                     
-
-local function mergeItemLists(items1, items2)
-  if not items2 then
-    return items1
-  end
-  if not items1 then
-    return items2
-  end
-  for n,c in pairs(items2) do
-    items1[n] = (items1[n] or 0) + c
-  end
-  return items1
-end
-
-
 local function mergeStackLists(stacks1, stacks2)
   if not stacks2 then
     return stacks1
@@ -99,9 +87,12 @@ local function saveInventoryStacks(source)
           end
           -- Merge with existing stacks to avoid duplicates
           mergeStackLists(stacks, {s})
+          
+          -- Can't restore equipment to an item's grid, have to unpack it to the inventory
           if stack.grid and stack.grid.valid then
-            -- Can't restore equipment to an item's grid, have to unpack it to the inventory
-            saveGridStacks(stacks, stack.grid)
+            local equipStacks, fuelStacks = __saveGridStacks__(__saveGrid__(stack.grid))
+            mergeStackLists(stacks, equipStacks)
+            mergeStackLists(stacks, fuelStacks)
           end
           
         end
@@ -120,13 +111,16 @@ end
 ---------------------------------------------------------------
 local function insertStack(target, stack, stack_limit)
   local proto = game.item_prototypes[stack.name]
+  local remainder = table.deepcopy(stack)
   if proto then
     if target.can_insert(stack) then
       if stack.data then
+        game.print("Inserting stack with data...")
         -- Insert bp item, find ItemStack, import data string
-        for i = #target, 1 do
+        for i = 1, #target do
           if not target[i].valid_for_read then
             -- this stack is empty, set it to blueprint
+            game.print("Found empty stack at index "..i)
             target[i].set_stack(stack)
             target[i].import_stack(stack.data)
             return nil  -- no remainders after insertion
@@ -145,16 +139,16 @@ local function insertStack(target, stack, stack_limit)
           -- Only the last part gets assigned ammo and durability ratings of the original stack
           d = target.insert(stack)
         end
-        stack.count = stack.count - d
-        if stack.count == 0 then
+        remainder.count = stack.count - d
+        if remainder.count == 0 then
           return nil  -- All items inserted, no remainder
         else
-          return stack  -- Not all items inserted, return remainder with original ammo/durability ratings
+          return remainder  -- Not all items inserted, return remainder with original ammo/durability ratings
         end
       end
     else
       -- Can't insert this stack, entire thing is remainder.
-      return stack
+      return remainder
     end
   else
     -- Prototype for this item was removed from the game, don't give a remainder.
@@ -173,14 +167,42 @@ local function spillStack(stack, surface, position)
   surface.spill_item_stack(position, stack)
   if stack.data then
     -- This is a bp item, find it on the surface and restore data
-    for _,entity in pairs(surface.find_entities_filtered{name="ItemEntity",position=position,radius=1000}) do
+    for _,entity in pairs(surface.find_entities_filtered{name="item-on-ground",position=position,radius=1000}) do
       -- Check if these are the droids we are looking for
       if entity.stack.valid_for_read then
-        if entity.stack.name == stack.name then
+        local es = entity.stack
+        if es.name == stack.name then
           -- TODO: Handle detection of empty deconstruction_planner, upgrade_planner, item_with_tags
-          if not entity.stack.is_blueprint_setup() then
+          if es.is_blueprint and not es.is_blueprint_setup() then
             -- New empty blueprint, let's import into it
-            entity.stack.import_stack(stack.data)
+            es.import_stack(stack.data)
+            break
+          elseif es.is_blueprint_book then
+            local estring = es.export_stack()
+            -- Compare export string to empty blueprint book
+            if estring == "0eNqrrgUAAXUA+Q==" then
+              es.import_stack(stack.data)
+              break
+            end
+          elseif es.is_upgrade_item then
+            local estring = es.export_stack()
+            -- Compare export string to empty upgrade planner
+            if estring == "0eNqrViotSC9KTEmNL8hJzMtLLVKyqlYqTi0pycxLL1ayyivNydFRyixJzVWygqnUhanUUSpLLSrOzM9TsjI3NjC0NDMyNDY3q60FABK2HN8=" then
+              es.import_stack(stack.data)
+              break
+            end
+          elseif es.is_deconstruction_item then
+            local estring = es.export_stack()
+            -- Compare export string to empty deconstruction planner
+            if estring == "0eNpljsEKwjAQRP9lzxFaCy3mZ0JIphJMN5JdhVLy77aoF70NbxjmbRQRCovWR9BU2N2zZ0Ylu5FANfFVjgzWpKubU1ZUt5QIsp0hrYA4z9HVEm7iCueV7OyzYC9Txv/igIKM992HN0NJsZD90Tl9dQw9UWUnZKeh6y/juR+msbUXMiNFlg==" then
+              es.import_stack(stack.data)
+              break
+            end
+          elseif es.is_item_with_tags  then
+            if not es.tags or table_size(es.tags) == 0 then
+              es.import_stack(stack.data)
+              break
+            end
           end
         end
       end
@@ -203,7 +225,7 @@ end
 --             stacks -> List of SimpleItemStack with extra optional field "data" storing blueprint export string.
 -- Returns:    remainders -> List of SimpleItemStacks representing all the items that could not be inserted at this time.
 ---------------------------------------------------------------
-local function restoreInventoryStacks(target, stacks)
+local function insertInventoryStacks(target, stacks)
   local remainders = {}
   if target and target.valid and stacks then
     for _,stack in pairs(stacks) do
@@ -219,7 +241,6 @@ local function restoreInventoryStacks(target, stacks)
     return nil
   end
 end
-
 
 
 local function saveBurner(burner)
@@ -249,8 +270,8 @@ local function restoreBurner(target, saved)
       target.remaining_burning_fuel = saved.remaining_burning_fuel
       target.heat = saved.heat
     end
-    local r1 = restoreInventoryStacks(target.inventory, saved.inventory)
-    local r2 = restoreInventoryStacks(target.burnt_result_inventory, saved.burnt_result_inventory)
+    local r1 = insertInventoryStacks(target.inventory, saved.inventory)
+    local r2 = insertInventoryStacks(target.burnt_result_inventory, saved.burnt_result_inventory)
     return mergeStackLists(r1, r2)
   end
 end
@@ -262,7 +283,17 @@ local function saveGrid(grid)
     for _,v in pairs(grid.equipment) do
       local item = {name=v.name,position=v.position}
       local burner = saveBurner(v.burner)
-      table.insert(gridContents,{item=item,energy=v.energy,shield=v.shield,burner=burner})
+      local energy, shield = v.energy, v.shield
+      if v.energy > 0 then
+        energy = v.energy
+      end
+      if v.shield > 0 then
+        shield = v.shield
+      end
+      table.insert(gridContents, {item=item,
+                                  energy=energy,
+                                  shield=shield,
+                                  burner=burner})
     end
     return gridContents
   else
@@ -270,36 +301,40 @@ local function saveGrid(grid)
   end
 end
 
-local function restoreGrid(grid, savedItems, player_index)
+__saveGrid__ = saveGrid
+
+local function restoreGrid(grid, savedGrid, player_index)
   local r_stacks = {}
-  for _,v in pairs(savedItems) do
-    if game.equipment_prototypes[v.item.name] then
-      local e = grid.put(v.item)
-      if e then
-        if v.energy then
-          e.energy = v.energy
-        end
-        if v.shield and v.shield > 0 then
-          e.shield = v.shield
-        end
-        if v.burner then
-          local r1 = restoreBurner(e.burner,v.burner)
-          r_stacks = mergeStackLists(r_stacks, r1)
-        end
-        if player_index then
-          script.raise_event(defines.events.on_player_placed_equipment, {player_index = player_index, equipment = e, grid = grid})
-        end
-      else
-        r_stacks = mergeStackLists(r_stacks, {{name=v.item.name, count=1}})
-        if v.burner then
-          r_stacks = mergeStackLists(r_stacks, v.burner.inventory)
-          r_stacks = mergeStackLists(r_stacks, v.burner.burnt_result_inventory)
+  if grid and grid.valid and savedGrid then
+    for _,v in pairs(savedGrid) do
+      if game.equipment_prototypes[v.item.name] then
+        local e = grid.put(v.item)
+        if e then
+          if v.energy then
+            e.energy = v.energy
+          end
+          if v.shield and v.shield > 0 then
+            e.shield = v.shield
+          end
+          if v.burner then
+            local r1 = restoreBurner(e.burner,v.burner)
+            r_stacks = mergeStackLists(r_stacks, r1)
+          end
+          if player_index then
+            script.raise_event(defines.events.on_player_placed_equipment, {player_index = player_index, equipment = e, grid = grid})
+          end
+        else
+          r_stacks = mergeStackLists(r_stacks, {{name=v.item.name, count=1}})
+          if v.burner then
+            r_stacks = mergeStackLists(r_stacks, v.burner.inventory)
+            r_stacks = mergeStackLists(r_stacks, v.burner.burnt_result_inventory)
+          end
         end
       end
     end
-  end
-  if #r_stacks > 0 then
-    return r_stacks
+    if #r_stacks > 0 then
+      return r_stacks
+    end
   end
 end
 
@@ -343,15 +378,19 @@ local function saveGridStacks(savedGrid)
 -- Count item numbers so we can add stacks of equipment and fuel properly
   local items = {}
   local fuel_items = {}
-  for _,v in pairs(savedGrid.equipment) do
-    if v.burner then
-      fuel_items = mergeStackLists(fuel_items, v.burner.inventory)
-      fuel_items = mergeStackLists(fuel_items, v.burner.burnt_result_inventory)
+  if savedGrid then
+    for _,v in pairs(savedGrid) do
+      if v.burner then
+        fuel_items = mergeStackLists(fuel_items, v.burner.inventory)
+        fuel_items = mergeStackLists(fuel_items, v.burner.burnt_result_inventory)
+      end
+      items = mergeStackLists(items, {{name=v.item.name, count=1}})
     end
-    items = mergeStackLists(items, {{name=v.item.name, count=1}})
+    return items, fuel_items
   end
-  return items, fuel_items
 end
+
+__saveGridStacks__ = saveGridStacks
 
 
 local function saveFilters(source)
@@ -414,11 +453,9 @@ return {
     removeStackFromSavedGrid = removeStackFromSavedGrid,
     saveInventoryStacks = saveInventoryStacks,
     insertStack = insertStack,
-    restoreInventoryStacks = restoreInventoryStacks,
+    insertInventoryStacks = insertInventoryStacks,
     mergeStackLists = mergeStackLists,
-    mergeItemLists = mergeItemLists,
     itemsToStacks = itemsToStacks,
-    spillStack = spillStack,
     spillStacks = spillStacks,
     saveFilters = saveFilters,
     restoreFilters = restoreFilters,
