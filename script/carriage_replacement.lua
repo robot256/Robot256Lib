@@ -106,105 +106,127 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     raise_built = false,
     snap_to_train_stop = false}
   -- make sure it was actually created
-  if not newCarriage then
+  if newCarriage then
+  
+    -- Restore coupling state (if we flipped the wagon, uncouple opposite sides)
+    if flip then
+      if not front_was_connected then
+        newCarriage.disconnect_rolling_stock(defines.rail_direction.back)
+      end
+      if not back_was_connected then
+        newCarriage.disconnect_rolling_stock(defines.rail_direction.front)
+      end
+    else
+      if not front_was_connected then
+        newCarriage.disconnect_rolling_stock(defines.rail_direction.front)
+      end
+      if not back_was_connected then
+        newCarriage.disconnect_rolling_stock(defines.rail_direction.back)
+      end
+    end
+
+
+    -- Restore parameters
+    newCarriage.health = health
+    if backer_name then newCarriage.backer_name = backer_name end
+    if last_user then newCarriage.last_user = last_user end
+    if color then newCarriage.color = color end
+    if kills then newCarriage.kills = kills end
+    
+    -- Restore the partially-used burner fuel
+    if saved_burner then
+      local remainders = saveRestoreLib.restoreBurner(newCarriage.burner, saved_burner)
+      saveRestoreLib.spillStacks(remainders)
+    end
+
+    -- Restore the ammo inventory
+    newAmmoInventory = newCarriage.get_inventory(defines.inventory.artillery_wagon_ammo)
+    if newAmmoInventory and newAmmoInventory.valid then
+      saveRestoreLib.restoreFilters(newAmmoInventory, ammo_filters)
+      local remainders = saveRestoreLib.insertInventoryStacks(newAmmoInventory, ammo_inventory)
+      saveRestoreLib.spillStacks(remainders)
+    end
+
+    -- Restore the cargo inventory
+    newCargoInventory = newCarriage.get_inventory(defines.inventory.cargo_wagon)
+    if newCargoInventory and newCargoInventory.valid then
+      saveRestoreLib.restoreFilters(newCargoInventory, cargo_filters)
+      local remainders = saveRestoreLib.insertInventoryStacks(newCargoInventory, cargo_inventory)
+      saveRestoreLib.spillStacks(remainders)
+    end
+
+    -- Restore the fluid wagon contents
+    for fluid,amount in pairs(fluid_contents) do
+      newCarriage.insert_fluid(fluid,amount)
+    end
+
+    -- Restore the equipment grid
+    if grid_equipment and newCarriage.grid and newCarriage.grid.valid then
+      local remainders = saveRestoreLib.restoreGrid(newCarriage.grid, grid_equipment)
+      saveRestoreLib.spillStacks(remainders)
+    end
+
+    -- Restore the player driving
+    if player_driving then
+      newCarriage.set_driver(player_driving)
+    end
+    
+    -- Restore pending deconstruction order
+    if deconstruction_request then
+      newCarriage.order_deconstruction(deconstruction_request)
+    end
+
+    -- Restore item_request_proxy by creating a new one
+    if item_requests then
+      newProxy = surface.create_entity{name="item-request-proxy", position=position, force=force, target=newCarriage, modules=item_requests}
+    end
+
+    -- After all that, fire an event so other scripts can reconnect to it
+    if raiseBuilt == nil or raiseBuilt == true then
+      script.raise_event(defines.events.script_raised_built, {entity = newCarriage})
+    end
+
+    -- Restore the train schedule and mode
+    if train_schedule and train_schedule.records ~= nil then
+      local num_stops = 0
+      for k,v in pairs(train_schedule.records) do
+        num_stops = num_stops + 1
+      end
+      -- If the schedule is not empty, assign it and restore manual/automatic mode
+      if num_stops > 0 then
+        newCarriage.train.schedule = train_schedule
+      end
+      -- If the saved schedule has no stops, do not write to train.schedule.  In 0.17.59, this will cause a script error.
+    end
+    newCarriage.train.manual_mode = manual_mode
+
+
+    --game.print("Finished replacing. Used direction "..newDirection..", new orientation: " .. newCarriage.orientation)
+    return newCarriage
+
+  else
+    -- Could not Create New Wagon
+    -- Spill Wagon and Contents on Ground!
+    
+    -- Spill carriage item
+    saveRestoreLib.spillStack({name=newName, count=1}, surface, position)
+    
+    -- Spill burner contents
+    local r = saveRestoreLib.restoreBurner(nil, saved_burner)
+    saveRestoreLib.spillStacks(r, surface, position)
+    
+    -- Spill equipment grid
+    local r = saveRestoreLib.restoreGrid(nil, grid_equipment)
+    saveRestoreLib.spillStacks(r, surface, position)
+    
+    -- Spill ammo inventory
+    saveRestoreLib.spillStacks(ammo_inventory, surface, position)
+    
+    -- Spill cargo inventory
+    saveRestoreLib.spillStacks(cargo_inventory, surface, position)
+    
     return nil
   end
-
-  -- Restore coupling state (if we flipped the wagon, uncouple opposite sides)
-  if flip then
-    if not front_was_connected then
-      newCarriage.disconnect_rolling_stock(defines.rail_direction.back)
-    end
-    if not back_was_connected then
-      newCarriage.disconnect_rolling_stock(defines.rail_direction.front)
-    end
-  else
-    if not front_was_connected then
-      newCarriage.disconnect_rolling_stock(defines.rail_direction.front)
-    end
-    if not back_was_connected then
-      newCarriage.disconnect_rolling_stock(defines.rail_direction.back)
-    end
-  end
-
-
-  -- Restore parameters
-  newCarriage.health = health
-  if backer_name then newCarriage.backer_name = backer_name end
-  if last_user then newCarriage.last_user = last_user end
-  if color then newCarriage.color = color end
-  if kills then newCarriage.kills = kills end
-  
-  -- Restore the partially-used burner fuel
-  if saved_burner then
-    local remainders = saveRestoreLib.restoreBurner(newCarriage.burner, saved_burner)
-    saveRestoreLib.spillStacks(remainders)
-  end
-
-  -- Restore the ammo inventory
-  newAmmoInventory = newCarriage.get_inventory(defines.inventory.artillery_wagon_ammo)
-  if newAmmoInventory and newAmmoInventory.valid then
-    saveRestoreLib.restoreFilters(newAmmoInventory, ammo_filters)
-    local remainders = saveRestoreLib.insertInventoryStacks(newAmmoInventory, ammo_inventory)
-    saveRestoreLib.spillStacks(remainders)
-  end
-
-  -- Restore the cargo inventory
-  newCargoInventory = newCarriage.get_inventory(defines.inventory.cargo_wagon)
-  if newCargoInventory and newCargoInventory.valid then
-    saveRestoreLib.restoreFilters(newCargoInventory, cargo_filters)
-    local remainders = saveRestoreLib.insertInventoryStacks(newCargoInventory, cargo_inventory)
-    saveRestoreLib.spillStacks(remainders)
-  end
-
-  -- Restore the fluid wagon contents
-  for fluid,amount in pairs(fluid_contents) do
-    newCarriage.insert_fluid(fluid,amount)
-  end
-
-  -- Restore the equipment grid
-  if grid_equipment and newCarriage.grid and newCarriage.grid.valid then
-    local remainders = saveRestoreLib.restoreGrid(newCarriage.grid, grid_equipment)
-    saveRestoreLib.spillStacks(remainders)
-  end
-
-  -- Restore the player driving
-  if player_driving then
-    newCarriage.set_driver(player_driving)
-  end
-  
-  -- Restore pending deconstruction order
-  if deconstruction_request then
-    newCarriage.order_deconstruction(deconstruction_request)
-  end
-
-  -- Restore item_request_proxy by creating a new one
-  if item_requests then
-    newProxy = surface.create_entity{name="item-request-proxy", position=position, force=force, target=newCarriage, modules=item_requests}
-  end
-
-  -- After all that, fire an event so other scripts can reconnect to it
-  if raiseBuilt == nil or raiseBuilt == true then
-    script.raise_event(defines.events.script_raised_built, {entity = newCarriage})
-  end
-
-  -- Restore the train schedule and mode
-  if train_schedule and train_schedule.records ~= nil then
-    local num_stops = 0
-    for k,v in pairs(train_schedule.records) do
-      num_stops = num_stops + 1
-    end
-    -- If the schedule is not empty, assign it and restore manual/automatic mode
-    if num_stops > 0 then
-      newCarriage.train.schedule = train_schedule
-    end
-    -- If the saved schedule has no stops, do not write to train.schedule.  In 0.17.59, this will cause a script error.
-  end
-  newCarriage.train.manual_mode = manual_mode
-
-
-  --game.print("Finished replacing. Used direction "..newDirection..", new orientation: " .. newCarriage.orientation)
-  return newCarriage
 end
 
 return {replaceCarriage = replaceCarriage}

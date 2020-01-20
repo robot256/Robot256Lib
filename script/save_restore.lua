@@ -26,11 +26,13 @@ local function mergeStackLists(stacks1, stacks2)
     return stacks2
   end
   for _,s in pairs(stacks2) do
+    if not s.count then s.count = 1 end
     if s.data or s.health or s.durability or s.ammo then
       table.insert(stacks1, s)
     else
       local found = false
       for _,t in pairs(stacks1) do
+        if not t.count then t.count = 1 end
         if s.name == t.name and not (t.ammo or t.data or t.durability) then
           t.count = t.count + s.count
           found = true
@@ -111,6 +113,7 @@ end
 ---------------------------------------------------------------
 local function insertStack(target, stack, stack_limit)
   local proto = game.item_prototypes[stack.name]
+  if not stack.count then stack.count = 1 end
   local remainder = table.deepcopy(stack)
   if proto then
     if target.can_insert(stack) then
@@ -164,44 +167,46 @@ end
 -- Returns:    remainder -> SimpleItemStack with extra field "data", representing all the items that could not be inserted at this time.
 ---------------------------------------------------------------
 local function spillStack(stack, surface, position)
-  surface.spill_item_stack(position, stack)
-  if stack.data then
-    -- This is a bp item, find it on the surface and restore data
-    for _,entity in pairs(surface.find_entities_filtered{name="item-on-ground",position=position,radius=1000}) do
-      -- Check if these are the droids we are looking for
-      if entity.stack.valid_for_read then
-        local es = entity.stack
-        if es.name == stack.name then
-          -- TODO: Handle detection of empty deconstruction_planner, upgrade_planner, item_with_tags
-          if es.is_blueprint and not es.is_blueprint_setup() then
-            -- New empty blueprint, let's import into it
-            es.import_stack(stack.data)
-            break
-          elseif es.is_blueprint_book then
-            local estring = es.export_stack()
-            -- Compare export string to empty blueprint book
-            if estring == "0eNqrrgUAAXUA+Q==" then
+  if stack then
+    surface.spill_item_stack(position, stack)
+    if stack.data then
+      -- This is a bp item, find it on the surface and restore data
+      for _,entity in pairs(surface.find_entities_filtered{name="item-on-ground",position=position,radius=1000}) do
+        -- Check if these are the droids we are looking for
+        if entity.stack.valid_for_read then
+          local es = entity.stack
+          if es.name == stack.name then
+            -- TODO: Handle detection of empty deconstruction_planner, upgrade_planner, item_with_tags
+            if es.is_blueprint and not es.is_blueprint_setup() then
+              -- New empty blueprint, let's import into it
               es.import_stack(stack.data)
               break
-            end
-          elseif es.is_upgrade_item then
-            local estring = es.export_stack()
-            -- Compare export string to empty upgrade planner
-            if estring == "0eNqrViotSC9KTEmNL8hJzMtLLVKyqlYqTi0pycxLL1ayyivNydFRyixJzVWygqnUhanUUSpLLSrOzM9TsjI3NjC0NDMyNDY3q60FABK2HN8=" then
-              es.import_stack(stack.data)
-              break
-            end
-          elseif es.is_deconstruction_item then
-            local estring = es.export_stack()
-            -- Compare export string to empty deconstruction planner
-            if estring == "0eNpljsEKwjAQRP9lzxFaCy3mZ0JIphJMN5JdhVLy77aoF70NbxjmbRQRCovWR9BU2N2zZ0Ylu5FANfFVjgzWpKubU1ZUt5QIsp0hrYA4z9HVEm7iCueV7OyzYC9Txv/igIKM992HN0NJsZD90Tl9dQw9UWUnZKeh6y/juR+msbUXMiNFlg==" then
-              es.import_stack(stack.data)
-              break
-            end
-          elseif es.is_item_with_tags  then
-            if not es.tags or table_size(es.tags) == 0 then
-              es.import_stack(stack.data)
-              break
+            elseif es.is_blueprint_book then
+              local estring = es.export_stack()
+              -- Compare export string to empty blueprint book
+              if estring == "0eNqrrgUAAXUA+Q==" then
+                es.import_stack(stack.data)
+                break
+              end
+            elseif es.is_upgrade_item then
+              local estring = es.export_stack()
+              -- Compare export string to empty upgrade planner
+              if estring == "0eNqrViotSC9KTEmNL8hJzMtLLVKyqlYqTi0pycxLL1ayyivNydFRyixJzVWygqnUhanUUSpLLSrOzM9TsjI3NjC0NDMyNDY3q60FABK2HN8=" then
+                es.import_stack(stack.data)
+                break
+              end
+            elseif es.is_deconstruction_item then
+              local estring = es.export_stack()
+              -- Compare export string to empty deconstruction planner
+              if estring == "0eNpljsEKwjAQRP9lzxFaCy3mZ0JIphJMN5JdhVLy77aoF70NbxjmbRQRCovWR9BU2N2zZ0Ylu5FANfFVjgzWpKubU1ZUt5QIsp0hrYA4z9HVEm7iCueV7OyzYC9Txv/igIKM992HN0NJsZD90Tl9dQw9UWUnZKeh6y/juR+msbUXMiNFlg==" then
+                es.import_stack(stack.data)
+                break
+              end
+            elseif es.is_item_with_tags  then
+              if not es.tags or table_size(es.tags) == 0 then
+                es.import_stack(stack.data)
+                break
+              end
             end
           end
         end
@@ -234,6 +239,9 @@ local function insertInventoryStacks(target, stacks)
         table.insert(remainders, r)
       end
     end
+  elseif stacks then
+    -- If inventory invalid, return entire contents
+    return stacks
   end
   if #remainders > 0 then
     return remainders
@@ -273,6 +281,11 @@ local function restoreBurner(target, saved)
     local r1 = insertInventoryStacks(target.inventory, saved.inventory)
     local r2 = insertInventoryStacks(target.burnt_result_inventory, saved.burnt_result_inventory)
     return mergeStackLists(r1, r2)
+  elseif saved then
+    -- Return entire contents if target invalid
+    local r = mergeStackLists({}, saved.burnt_result_inventory)
+    r = mergeStackLists(r, saved.inventory)
+    return r
   end
 end
 
@@ -306,6 +319,7 @@ __saveGrid__ = saveGrid
 local function restoreGrid(grid, savedGrid, player_index)
   local r_stacks = {}
   if grid and grid.valid and savedGrid then
+    -- Insert as much as possible into this grid, return items not inserted as remainder stacks
     for _,v in pairs(savedGrid) do
       if game.equipment_prototypes[v.item.name] then
         local e = grid.put(v.item)
@@ -335,12 +349,19 @@ local function restoreGrid(grid, savedGrid, player_index)
     if #r_stacks > 0 then
       return r_stacks
     end
+  elseif savedGrid then
+    -- If grid is invalid but we have saved items, return the whole grid as a remainder
+    local e,f = saveGridStacks(savedGrid)
+    r_stacks = mergeStackLists(r_stacks, e)
+    r_stacks = mergeStackLists(r_stacks, f)
+    return r_stacks
   end
 end
 
 
 local function removeStackFromSavedGrid(savedGrid, stack)
   if savedGrid and stack then
+    if not stack.count then stack.count = 1 end
     for i,e in pairs(savedGrid) do
       if e.item.name == stack.name then
         savedGrid[i] = nil
@@ -456,6 +477,7 @@ return {
     insertInventoryStacks = insertInventoryStacks,
     mergeStackLists = mergeStackLists,
     itemsToStacks = itemsToStacks,
+    spillStack = spillStack,
     spillStacks = spillStacks,
     saveFilters = saveFilters,
     restoreFilters = restoreFilters,
