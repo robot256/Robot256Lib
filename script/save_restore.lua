@@ -234,7 +234,7 @@ local function insertInventoryStacks(target, stacks)
   local remainders = {}
   if target and target.valid and stacks then
     for _,stack in pairs(stacks) do
-      local r = saveRestoreLib.insertStack(target, stack)
+      local r = insertStack(target, stack)
       if r then 
         table.insert(remainders, r)
       end
