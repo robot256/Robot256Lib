@@ -1,4 +1,4 @@
---[[ Copyright (c) 2019 robot256 (MIT License)
+--[[ Copyright (c) 2020 robot256 (MIT License)
  * Project: Robot256's Library
  * File: replace_carriage.lua
  * Description: Replaces one Carriage Entity with a new one of the
@@ -6,14 +6,20 @@
  *    of the original as possible.
  * Parameters: carriage: locomotive or wagon entity to be replaced)
  *             newName: name of entity to replace it)
- *             raiseBuilt (optional): whether or not to issue script_raised_built when done creating the new locomotive
- *             raiseDestroy (optional): whether or not to issue script_raised_destroy when destroying the old locomotive
+ *             raiseBuilt (optional): whether or not to issue script_raised_built when done creating the new carriage
+ *             raiseDestroy (optional): whether or not to issue script_raised_destroy when destroying the old carriage
+ *             flip (optional): whether to rotate the replacement carriage 180 degrees relative to the original
  * Returns: newCarriage entity if successful, nil if unsuccessful
  * Dependencies: saveGrid,
  *               restoreGrid,
  *               saveBurner,
  *               restoreBurner,
- *               saveItemRequestProxy
+ *               saveItemRequestProxy,
+ *               saveInventoryStacks,
+ *               insertInventoryStacks,
+ *               saveFilters,
+ *               restoreFilters,
+ *               spillStacks
 --]]
 
 local saveRestoreLib = require("__Robot256Lib__/script/save_restore")
@@ -64,21 +70,25 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
   -- Save the artillery wagon ammunition inventory
   local ammo_inventory = nil
   local ammo_filters = nil
-  local ammo_inventory_object = carriage.get_inventory(defines.inventory.artillery_wagon_ammo)
-  if( ammo_inventory_object and ammo_inventory_object.valid ) then
-    ammo_inventory = saveRestoreLib.saveInventoryStacks(ammo_inventory_object)
-    ammo_filters = saveRestoreLib.saveFilters(ammo_inventory_object)
+  if carriage.type == "artillery-wagon" then
+    local ammo_inventory_object = carriage.get_inventory(defines.inventory.artillery_wagon_ammo)
+    if( ammo_inventory_object and ammo_inventory_object.valid ) then
+      ammo_inventory = saveRestoreLib.saveInventoryStacks(ammo_inventory_object)
+      ammo_filters = saveRestoreLib.saveFilters(ammo_inventory_object)
+    end
   end
 
   -- Save the cargo wagon inventory
   local cargo_inventory = nil
   local cargo_filters = nil
-  local cargo_inventory_object = carriage.get_inventory(defines.inventory.cargo_wagon)
-  if( cargo_inventory_object and cargo_inventory_object.valid ) then
-    cargo_inventory = saveRestoreLib.saveInventoryStacks(cargo_inventory_object)
-    cargo_filters = saveRestoreLib.saveFilters(cargo_inventory_object)
+  if carriage.type == "cargo-wagon" then
+    local cargo_inventory_object = carriage.get_inventory(defines.inventory.cargo_wagon)
+    if( cargo_inventory_object and cargo_inventory_object.valid ) then
+      cargo_inventory = saveRestoreLib.saveInventoryStacks(cargo_inventory_object)
+      cargo_filters = saveRestoreLib.saveFilters(cargo_inventory_object)
+    end
   end
-
+  
   -- Save the fluid wagon contents
   local fluid_contents = carriage.get_fluid_contents()
 
@@ -136,23 +146,27 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     -- Restore the partially-used burner fuel
     if saved_burner then
       local remainders = saveRestoreLib.restoreBurner(newCarriage.burner, saved_burner)
-      saveRestoreLib.spillStacks(remainders)
+      saveRestoreLib.spillStacks(remainders, surface, position)
     end
 
     -- Restore the ammo inventory
-    newAmmoInventory = newCarriage.get_inventory(defines.inventory.artillery_wagon_ammo)
-    if newAmmoInventory and newAmmoInventory.valid then
-      saveRestoreLib.restoreFilters(newAmmoInventory, ammo_filters)
-      local remainders = saveRestoreLib.insertInventoryStacks(newAmmoInventory, ammo_inventory)
-      saveRestoreLib.spillStacks(remainders)
+    if ammo_inventory or ammo_filters then
+      newAmmoInventory = newCarriage.get_inventory(defines.inventory.artillery_wagon_ammo)
+      if newAmmoInventory and newAmmoInventory.valid then
+        saveRestoreLib.restoreFilters(newAmmoInventory, ammo_filters)
+        local remainders = saveRestoreLib.insertInventoryStacks(newAmmoInventory, ammo_inventory)
+        saveRestoreLib.spillStacks(remainders, surface, position)
+      end
     end
 
     -- Restore the cargo inventory
-    newCargoInventory = newCarriage.get_inventory(defines.inventory.cargo_wagon)
-    if newCargoInventory and newCargoInventory.valid then
-      saveRestoreLib.restoreFilters(newCargoInventory, cargo_filters)
-      local remainders = saveRestoreLib.insertInventoryStacks(newCargoInventory, cargo_inventory)
-      saveRestoreLib.spillStacks(remainders)
+    if cargo_inventory or cargo_filters then
+      newCargoInventory = newCarriage.get_inventory(defines.inventory.cargo_wagon)
+      if newCargoInventory and newCargoInventory.valid then
+        saveRestoreLib.restoreFilters(newCargoInventory, cargo_filters)
+        local remainders = saveRestoreLib.insertInventoryStacks(newCargoInventory, cargo_inventory)
+        saveRestoreLib.spillStacks(remainders, surface, position)
+      end
     end
 
     -- Restore the fluid wagon contents
@@ -163,7 +177,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     -- Restore the equipment grid
     if grid_equipment and newCarriage.grid and newCarriage.grid.valid then
       local remainders = saveRestoreLib.restoreGrid(newCarriage.grid, grid_equipment)
-      saveRestoreLib.spillStacks(remainders)
+      saveRestoreLib.spillStacks(remainders, surface, position)
     end
 
     -- Restore the player driving

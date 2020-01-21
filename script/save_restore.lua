@@ -1,10 +1,10 @@
---[[ Copyright (c) 2019 robot256 (MIT License)
+--[[ Copyright (c) 2020 robot256 (MIT License)
  * Project: Robot256's Library
- * File: carriage_replacement.lua
- * Description: Functions replace one Carriage Entity with a new one of a different entity-name.
- *    Preserves as many properties of the original as possible.
- * Parameters: loco (locomotive entity to be replaced), newName (name of locomotive entity to replace it)
- * Returns: newLoco entity if successful, nil if unsuccessful
+ * File: save_restore.lua
+ * Description: Functions for converting between inventory, burner, and grid objects and native Lua table structures.
+ *   Functions handle items in arrays of SimpleItemStack tables, with the extra "data" field to store blueprints etc.
+ *   Functions include nil checking for both objects and arrays.
+ *   Functions to insert items into objects return list of stacks representing the items that could not be inserted.
  -]]
 
 require("util")
@@ -118,12 +118,10 @@ local function insertStack(target, stack, stack_limit)
   if proto then
     if target.can_insert(stack) then
       if stack.data then
-        game.print("Inserting stack with data...")
         -- Insert bp item, find ItemStack, import data string
         for i = 1, #target do
           if not target[i].valid_for_read then
             -- this stack is empty, set it to blueprint
-            game.print("Found empty stack at index "..i)
             target[i].set_stack(stack)
             target[i].import_stack(stack.data)
             return nil  -- no remainders after insertion
@@ -296,7 +294,7 @@ local function saveGrid(grid)
     for _,v in pairs(grid.equipment) do
       local item = {name=v.name,position=v.position}
       local burner = saveBurner(v.burner)
-      local energy, shield = v.energy, v.shield
+      local energy, shield
       if v.energy > 0 then
         energy = v.energy
       end
