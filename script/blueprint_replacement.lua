@@ -30,7 +30,7 @@ end
  --]]
   
 
-function purgeBlueprint(bp,map)
+local function purgeBlueprint(bp,map)
 	-- Get Entity table from blueprint
 	local entities = bp.get_blueprint_entities()
 	-- Find any downgradable items and downgrade them
@@ -59,7 +59,7 @@ function purgeBlueprint(bp,map)
 end
 
 
-function mapBlueprint(event,map)
+local function mapBlueprint(event,map)
 	-- Get Blueprint from player (LuaItemStack object)
 	-- If this is a Copy operation, BP is in cursor_stack
 	-- If this is a Blueprint operation, BP is in blueprint_to_setup
@@ -76,7 +76,7 @@ function mapBlueprint(event,map)
 end
 
 
-function mapPipette(event,map)
+local function mapPipette(event,map)
 	local item = event.item
 	if item and item.valid then
 		if map[item.name] then
