@@ -138,9 +138,9 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
 
     -- Restore parameters
     newCarriage.health = health
+    newCarriage.color = color
     if backer_name then newCarriage.backer_name = backer_name end
     if last_user then newCarriage.last_user = last_user end
-    if color then newCarriage.color = color end
     if kills then newCarriage.kills = kills end
     
     -- Restore the partially-used burner fuel
