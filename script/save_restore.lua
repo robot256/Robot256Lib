@@ -290,7 +290,7 @@ end
 
 local function saveGrid(grid)
   if grid and grid.valid then
-    gridContents = {}
+    local gridContents = {}
     for _,v in pairs(grid.equipment) do
       local item = {name=v.name,position=v.position}
       local burner = saveBurner(v.burner)
