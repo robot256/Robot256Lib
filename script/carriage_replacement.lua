@@ -152,7 +152,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
 
     -- Restore the ammo inventory
     if ammo_inventory or ammo_filters then
-      newAmmoInventory = newCarriage.get_inventory(defines.inventory.artillery_wagon_ammo)
+      local newAmmoInventory = newCarriage.get_inventory(defines.inventory.artillery_wagon_ammo)
       if newAmmoInventory and newAmmoInventory.valid then
         saveRestoreLib.restoreFilters(newAmmoInventory, ammo_filters)
         local remainders = saveRestoreLib.insertInventoryStacks(newAmmoInventory, ammo_inventory)
@@ -162,7 +162,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
 
     -- Restore the cargo inventory
     if cargo_inventory or cargo_filters then
-      newCargoInventory = newCarriage.get_inventory(defines.inventory.cargo_wagon)
+      local newCargoInventory = newCarriage.get_inventory(defines.inventory.cargo_wagon)
       if newCargoInventory and newCargoInventory.valid then
         saveRestoreLib.restoreFilters(newCargoInventory, cargo_filters)
         local remainders = saveRestoreLib.insertInventoryStacks(newCargoInventory, cargo_inventory)
