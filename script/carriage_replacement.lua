@@ -49,7 +49,8 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
   
   -- Flip orientation if needed
   if flip then
-    _,orientation = math.modf(orientation + 0.5)
+    local foo
+    foo,orientation = math.modf(orientation + 0.5)
   end
 
   -- Save equipment grid contents
