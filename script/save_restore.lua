@@ -349,7 +349,7 @@ local function restoreGrid(grid, savedGrid, player_index)
     end
   elseif savedGrid then
     -- If grid is invalid but we have saved items, return the whole grid as a remainder
-    local e,f = saveGridStacks(savedGrid)
+    local e,f = __saveGridStacks__(savedGrid)
     r_stacks = mergeStackLists(r_stacks, e)
     r_stacks = mergeStackLists(r_stacks, f)
     return r_stacks
