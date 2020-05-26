@@ -193,7 +193,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
 
     -- Restore item_request_proxy by creating a new one
     if item_requests then
-      newProxy = surface.create_entity{name="item-request-proxy", position=position, force=force, target=newCarriage, modules=item_requests}
+      surface.create_entity{name="item-request-proxy", position=position, force=force, target=newCarriage, modules=item_requests}
     end
 
     -- After all that, fire an event so other scripts can reconnect to it
