@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.17.4
+Date: 2020-05-26
+  Bugfixes:
+    - Fixed what should be the last accidental global references, when creating item request proxies.
+---------------------------------------------------------------------------------------------------
 Version: 0.17.3
 Date: 2020-05-23
   Bugfixes:
