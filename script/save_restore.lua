@@ -54,6 +54,7 @@ local function itemsToStacks(items)
     for name, count in pairs(items) do
       table.insert(stacks, {name=name, count=count})
     end
+    if #stacks == 0 then stacks = nil end
     return stacks
   end
 end
