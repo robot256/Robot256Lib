@@ -422,7 +422,7 @@ local function saveFilters(source)
         filters[f] = source.get_filter(f)
       end
     end
-    if source.supports_bar() and source.get_bar() <= #source then
+    if source.hasbar() and source.getbar() then
       filters = filters or {}
       filters.bar = source.getbar()
     end
@@ -437,8 +437,8 @@ local function restoreFilters(target, filters)
         target.set_filter(f, filters[f])
       end
     end
-    if target.supports_bar() then
-      target.set_bar(filters.bar)  -- if filters.bar is nil, will clear bar setting
+    if target.hasbar() and filters.bar then
+      target.setbar(filters.bar)
     end
   end
 end
