@@ -315,7 +315,7 @@ end
 
 __saveGrid__ = saveGrid
 
-local function restoreGrid(grid, savedGrid, player_index)
+local function restoreGrid(grid, savedGrid)
   local r_stacks = {}
   if grid and grid.valid and savedGrid then
     -- Insert as much as possible into this grid, return items not inserted as remainder stacks
