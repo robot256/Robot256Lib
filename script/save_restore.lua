@@ -333,9 +333,6 @@ local function restoreGrid(grid, savedGrid, player_index)
             local r1 = restoreBurner(e.burner,v.burner)
             r_stacks = mergeStackLists(r_stacks, r1)
           end
-          if player_index then
-            script.raise_event(defines.events.on_player_placed_equipment, {player_index = player_index, equipment = e, grid = grid})
-          end
         else
           r_stacks = mergeStackLists(r_stacks, {{name=v.item.name, count=1}})
           if v.burner then
