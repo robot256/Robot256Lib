@@ -315,15 +315,12 @@ end
 
 __saveGrid__ = saveGrid
 
-local function restoreGrid(grid, savedGrid, player_index)
+local function restoreGrid(grid, savedGrid)
   local r_stacks = {}
   if grid and grid.valid and savedGrid then
     -- Insert as much as possible into this grid, return items not inserted as remainder stacks
     for _,v in pairs(savedGrid) do
       if game.equipment_prototypes[v.item.name] then
-        if player_index then
-          v.item.player_index = game.players[player_index]
-        end
         local e = grid.put(v.item)
         if e then
           if v.energy then
