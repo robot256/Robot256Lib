@@ -37,6 +37,11 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
   local health = carriage.health
   local player_driving = carriage.get_driver()
   local last_user = carriage.last_user
+  local minable = carriage.minable
+  local destructible = carriage.destructible
+  local operable = carriage.operable
+  local rotatable = carriage.rotatable
+  local enable_logistics_while_moving = carriage.enable_logistics_while_moving
   
   -- Save deconstruction request by any force
   local deconstruction_request = nil
@@ -139,10 +144,16 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
 
     -- Restore parameters
     newCarriage.health = health
+    newCarriage.color = color
     if backer_name then newCarriage.backer_name = backer_name end
     if last_user then newCarriage.last_user = last_user end
-    if color then newCarriage.color = color end
     if kills then newCarriage.kills = kills end
+    newCarriage.minable = minable
+    newCarriage.destructible = destructible
+    newCarriage.operable = operable
+    newCarriage.rotatable = rotatable
+    newCarriage.enable_logistics_while_moving = enable_logistics_while_moving
+    
     
     -- Restore the partially-used burner fuel
     if saved_burner then

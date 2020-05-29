@@ -54,6 +54,7 @@ local function itemsToStacks(items)
     for name, count in pairs(items) do
       table.insert(stacks, {name=name, count=count})
     end
+    if #stacks == 0 then stacks = nil end
     return stacks
   end
 end
@@ -421,7 +422,7 @@ local function saveFilters(source)
         filters[f] = source.get_filter(f)
       end
     end
-    if source.hasbar() and source.getbar() then
+    if source.supports_bar() and source.get_bar() <= #source then
       filters = filters or {}
       filters.bar = source.getbar()
     end
@@ -436,8 +437,8 @@ local function restoreFilters(target, filters)
         target.set_filter(f, filters[f])
       end
     end
-    if target.hasbar() and filters.bar then
-      target.setbar(filters.bar)
+    if target.supports_bar() then
+      target.set_bar(filters.bar)  -- if filters.bar is nil, will clear bar setting
     end
   end
 end
