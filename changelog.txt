@@ -3,8 +3,7 @@ Version: 0.17.6
 Date: 2020-05-29
   Bugfixes:
     - Fixed accidental reversion of inventory bar and wagon color handling.
-    - Removed generation of on_player_placed_equipment inside restoreGrid(). This should not be raised if script_raised_built is raised after the grid is restored.
-    - ???
+    - Removed generation of on_player_placed_equipment inside restoreGrid(). This does not need to be raised if script_raised_built is raised after the grid is restored.
 ---------------------------------------------------------------------------------------------------
 Version: 0.17.5
 Date: 2020-05-28
