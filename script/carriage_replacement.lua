@@ -52,6 +52,14 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     end
   end
   
+  -- Save GUI opened by any player
+  local opened_by_players = {}
+  for _,p in pairs(game.players) do
+    if p.opened == carriage then
+      table.insert(opened_by_players, p)
+    end
+  end
+  
   -- Flip orientation if needed
   if flip then
     local foo
@@ -225,8 +233,12 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
       -- If the saved schedule has no stops, do not write to train.schedule.  In 0.17.59, this will cause a script error.
     end
     newCarriage.train.manual_mode = manual_mode
-
-
+    
+    -- Restore the GUI opened by players
+    for _,p in pairs(opened_by_players) do
+      p.opened = newCarriage
+    end
+    
     --game.print("Finished replacing. Used direction "..newDirection..", new orientation: " .. newCarriage.orientation)
     return newCarriage
 
