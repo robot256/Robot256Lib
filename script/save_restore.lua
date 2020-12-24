@@ -183,21 +183,21 @@ local function spillStack(stack, surface, position)
             elseif es.is_blueprint_book then
               local estring = es.export_stack()
               -- Compare export string to empty blueprint book
-              if estring == "0eNqrVkrKKU0tKMrMK4lPys/PVrKqVsosSc1VskJI6IIldJQSk0syy1LjM/NSUiuUrAx0lMpSi4oz8/OUrIwsDE3MLY3MDc3MzS0tjWprAVWnHQo=" then
+              if estring == "0eNqrVkrKKU0tKMrMK1GyqlbKLEnNVbJCEtNRKkstKs7Mz1OyMrIwNDE3sTQ3Mzc0MDM1q60FAHmVE1M=" then
                 es.import_stack(stack.data)
                 break
               end
             elseif es.is_upgrade_item then
               local estring = es.export_stack()
               -- Compare export string to empty upgrade planner
-              if estring == "0eNo1yk0KgCAQBtC7fGtbKNGklwmhQQSbxJ824t1b+dZvoOdQ/M1XTl6EC9xA5daihAonPSWF2PiBW3NbU+HjUuMrcObUO1lD+iCy1sz5A4aSHcM=" then
+              if estring == "0eNo1yksKgCAUBdC93LFBhmm5mRB6iGAv8dNE3Hsjz/h0tOSzu+lK0TFThu0oVGtgX2C5xSgQKj2wcy5zCnyUS3gZdjukMuo02shV73qMH4ZxHbs=" then
                 es.import_stack(stack.data)
                 break
               end
             elseif es.is_deconstruction_item then
               local estring = es.export_stack()
               -- Compare export string to empty deconstruction planner
-              if estring == "0eNpdy8EKgCAMANB/2dkOSmTuZyJshGAz3Owi/XtdunR98DpsFAuL1hY1FV7OvDJTBewgpJp4F0BuORtISgfgLwxfMHBRlVcA3WxHH5y3k/chuPt+ALDXI9s=" then
+              if estring == "0eNpdy0EKgCAQAMC/7Nkgw7T8TIQtIdga7tol/HtdunQdmBs2DJlYSg0SMy1nWomwgL+BUSTSzuCppqQgCh7gf6H7goILC78Cfpi0cWZ21unejra1B7C2I9M=" then
                 es.import_stack(stack.data)
                 break
               end

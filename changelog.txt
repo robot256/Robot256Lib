@@ -1,16 +1,11 @@
 ---------------------------------------------------------------------------------------------------
-Version: 1.1.2
-Date: 2020-12-05
+Version: 1.0.0
+Date: 2020-12-23
+  Features:
+    - Release for Factorio 1.0.
   Bugfixes:
     - Carriage replacement restores artillery wagon "damage dealt" statistic.
----------------------------------------------------------------------------------------------------
-Version: 1.1.1
-Date: 2020-12-03
-  Bugfixes:
     - Carriage replacement restores any open player GUIs with the new entity, since deleting the old one closes the GUI.
----------------------------------------------------------------------------------------------------
-Version: 1.1.0
-Date: 2020-11-23
   Changes:
     - Updated empty book/upgrade/deconstruction item strings in save_restore/spillStack function. (This probably would not have worked in 1.0 either.)
 ---------------------------------------------------------------------------------------------------
