@@ -220,7 +220,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
 
     -- After all that, fire an event so other scripts can reconnect to it
     if raiseBuilt == nil or raiseBuilt == true then
-      script.raise_event(defines.events.script_raised_built, {entity = newCarriage})
+      script.raise_script_built{entity = newCarriage}
     end
 
     -- Restore the train schedule and mode
