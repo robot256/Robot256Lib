@@ -76,32 +76,46 @@ end
 
 local function mapPipette(event,map)
   local item = event.item
-  if item and item.valid then
-    if map[item.name] then
-      local player = game.players[event.player_index]
-      local newName = map[item.name]
-      local cursor = player.cursor_stack
-      local inventory = player.get_main_inventory()
-      -- Check if the player got MU versions from inventory, and convert them
-      if cursor.valid_for_read == true and event.used_cheat_mode == false then
-        -- Huh, he actually had MU items.
-        cursor.set_stack({name=newName,count=cursor.count})
-      else
-        -- Check if the player could have gotten the right thing from inventory/cheat, otherwise clear the cursor
-        local newItemStack = inventory.find_item_stack(newName)
-        cursor.set_stack(newItemStack)
-        if not cursor.valid_for_read then
-          if player.cheat_mode==true then
+  if map[item.name] then
+    -- Originally pipetted on an item of interest
+    -- Check current contents of cursor
+    local player = game.players[event.player_index]
+    local cursor = player.cursor_stack
+    if cursor.valid_for_read then
+      if map[cursor.name] then
+        local inventory = player.get_main_inventory()
+        local newName = map[cursor.name]
+        if event.used_cheat_mode then
+          local newItemStack = inventory.find_item_stack(newName)
+          if newItemStack then
+            -- Delete cheat-gotten wrong items, load correct items from inventory
+            cursor.set_stack(newItemStack)
+            inventory.remove(newItemStack)
+          else
+            -- Delete cheat-gotten wrong items, cheat-give correct items
             cursor.set_stack({name=newName, count=game.item_prototypes[newName].stack_size})
           end
         else
+          -- Transform fairly-gotten wrong items into correct items
+          cursor.set_stack({name=newName, count=cursor.count})
+        end
+      end
+    else
+      if not event.used_cheat_mode then
+        local inventory = player.get_main_inventory()
+        local newName = map[item.name]
+        local newItemStack = inventory.find_item_stack(newName)
+        if newItemStack then
+          -- Load empty cursor with correct items from inventory
+          cursor.set_stack(newItemStack)
           inventory.remove(newItemStack)
         end
       end
-      -- If we got a ghost instead of an item, change it too.
-      if player.cursor_ghost and map[player.cursor_ghost.name] then
-        player.cursor_ghost = map[player.cursor_ghost.name]
-      end
+    end
+    
+    -- Check contents of cursor_ghost as well (can coexist with cursor_stack)
+    if player.cursor_ghost and map[player.cursor_ghost.name] then
+      player.cursor_ghost = map[player.cursor_ghost.name]
     end
   end
 end

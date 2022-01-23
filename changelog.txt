@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.1.4
+Date: 2022-01-23
+  Bugfixes:
+    - Fix item duplication when pipetting Vehicle Wagons in Space Exploration remote view mode.
+---------------------------------------------------------------------------------------------------
 Version: 1.1.3
 Date: 2022-01-23
   Bugfixes:
