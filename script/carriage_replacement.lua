@@ -42,6 +42,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
   local operable = carriage.operable
   local rotatable = carriage.rotatable
   local enable_logistics_while_moving = carriage.enable_logistics_while_moving
+  local quality = carriage.quality
   
   -- Save deconstruction request by any force
   local deconstruction_request = nil
@@ -67,23 +68,44 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
   end
 
   -- Save equipment grid contents
+  -- TODO: UPDATE FOR QUALITY
   local grid_equipment = saveRestoreLib.saveGrid(carriage.grid)
 
   -- Save item requests left over from a blueprint
   local item_requests = saveRestoreLib.saveItemRequestProxy(carriage)
-
-  -- Save the burner progress
-  local saved_burner = saveRestoreLib.saveBurner(carriage.burner)
-
+  
+  -- Save the burner progress, including heat and fuel item quality
+  local saved_burner
+  if carriage.type == "locomotive" then
+    local burner = carriage.burner
+    saved_burner = {}
+    saved_burner.currently_burning = burner.currently_burning  -- returns array[{name, count, quality}]
+    saved_burner.remaining_burning_fuel = burner.remaining_burning_fuel
+    saved_burner.heat = burner.heat
+    if burner.inventory and not burner.inventory.is_empty() then
+      saved_burner.inventory = game.create_inventory(#burner.inventory)
+      for k=1,#burner.inventory do
+        saved_burner.inventory[k].transfer_stack(burner.inventory[k])
+      end
+    end
+    if burner.burnt_result_inventory and not burner.burnt_result_inventory.is_empty() then
+      saved_burner.burnt_result_inventory = game.create_inventory(#burner.burnt_result_inventory)
+      for k=1,#burner.burnt_result_inventory do
+        saved_burner.burnt_result_inventory[k].transfer_stack(burner.burnt_result_inventory[k])
+      end
+    end
+  end
+    
+    
   -- Save the kills stat for artillery wagons
-  local kills = nil
-  local damage_dealt = nil
+  local kills, damage_dealt, artillery_auto_targeting
   if carriage.type == "artillery-wagon" then
     kills = carriage.kills
     damage_dealt = carriage.damage_dealt
+    artillery_auto_targeting = carriage.artillery_auto_targeting
   end
 
-  -- Save the artillery wagon ammunition inventory
+  -- Save the artillery wagon ammunition inventory (respects quality, ignores spoilage)
   local ammo_inventory = nil
   local ammo_filters = nil
   if carriage.type == "artillery-wagon" then
@@ -94,13 +116,19 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     end
   end
 
-  -- Save the cargo wagon inventory
+  -- Save the cargo wagon inventory (respects quality and spoilage)
   local cargo_inventory = nil
   local cargo_filters = nil
   if carriage.type == "cargo-wagon" then
     local cargo_inventory_object = carriage.get_inventory(defines.inventory.cargo_wagon)
     if( cargo_inventory_object and cargo_inventory_object.valid ) then
-      cargo_inventory = saveRestoreLib.saveInventoryStacks(cargo_inventory_object)
+      -- Move cargo items into Script Inventory object to preserve quality and spoilage
+      if not cargo_inventory_object.is_empty() then
+        cargo_inventory = game.create_inventory(#cargo_inventory_object)
+        for k = 1,#cargo_inventory_object do
+          cargo_inventory[k].transfer_stack(cargo_inventory_object[k])
+        end
+      end
       cargo_filters = saveRestoreLib.saveFilters(cargo_inventory_object)
     end
   end
@@ -125,6 +153,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
   -- Create the new locomotive in the same spot and orientation
   local newCarriage = surface.create_entity{
     name = newName,
+    quality = quality,
     position = position,
     orientation = orientation,
     force = force,
@@ -154,11 +183,12 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
 
     -- Restore parameters
     newCarriage.health = health
-    newCarriage.color = color
+    if color then newCarriage.color = color end
     if backer_name then newCarriage.backer_name = backer_name end
     if last_user then newCarriage.last_user = last_user end
     if kills then newCarriage.kills = kills end
     if damage_dealt then newCarriage.damage_dealt = damage_dealt end
+    if artillery_auto_targeting then carriage.artillery_auto_targeting = artillery_auto_targeting end
     newCarriage.minable = minable
     newCarriage.destructible = destructible
     newCarriage.operable = operable
@@ -167,9 +197,21 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     
     
     -- Restore the partially-used burner fuel
-    if saved_burner then
-      local remainders = saveRestoreLib.restoreBurner(newCarriage.burner, saved_burner)
-      saveRestoreLib.spillStacks(remainders, surface, position)
+    if saved_burner and newCarriage.burner then
+      local burner = newCarriage.burner
+      burner.currently_burning = saved_burner.currently_burning
+      burner.remaining_burning_fuel = saved_burner.remaining_burning_fuel
+      burner.heat = saved_burner.heat
+      if burner.inventory and saved_burner.inventory then
+        for k=1,math.min(#burner.inventory, #saved_burner.inventory) do
+          burner.inventory[k].transfer_stack(saved_burner.inventory[k])
+        end
+      end
+      if burner.burnt_result_inventory and saved_burner.burnt_result_inventory then
+        for k=1,math.min(#burner.burnt_result_inventory, #saved_burner.burnt_result_inventory) do
+          burner.burnt_result_inventory[k].transfer_stack(saved_burner.burnt_result_inventory[k])
+        end
+      end
     end
 
     -- Restore the ammo inventory
@@ -187,8 +229,11 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
       local newCargoInventory = newCarriage.get_inventory(defines.inventory.cargo_wagon)
       if newCargoInventory and newCargoInventory.valid then
         saveRestoreLib.restoreFilters(newCargoInventory, cargo_filters)
-        local remainders = saveRestoreLib.insertInventoryStacks(newCargoInventory, cargo_inventory)
-        saveRestoreLib.spillStacks(remainders, surface, position)
+        -- Copy LuaItemStacks back out of the Script Inventory
+        for k=1, #cargo_inventory do
+          newCargoInventory[k].transfer_stack(cargo_inventory[k])
+        end
+        cargo_inventory.destroy()
       end
     end
 
@@ -198,6 +243,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     end
 
     -- Restore the equipment grid
+    -- TODO: UPDATE FOR QUALITY
     if grid_equipment and newCarriage.grid and newCarriage.grid.valid then
       local remainders = saveRestoreLib.restoreGrid(newCarriage.grid, grid_equipment)
       saveRestoreLib.spillStacks(remainders, surface, position)
@@ -213,14 +259,14 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
       newCarriage.order_deconstruction(deconstruction_request)
     end
 
-    -- Restore item_request_proxy by creating a new one
+    -- Restore item_request_proxy by creating new ones
     if item_requests then
       surface.create_entity{name="item-request-proxy", position=position, force=force, target=newCarriage, modules=item_requests}
     end
 
     -- After all that, fire an event so other scripts can reconnect to it
     if raiseBuilt == nil or raiseBuilt == true then
-      script.raise_script_built{entity = newCarriage}
+      script.raise_event(defines.events.script_raised_built, {entity = newCarriage})
     end
 
     -- Restore the train schedule and mode
@@ -263,8 +309,10 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     -- Spill ammo inventory
     saveRestoreLib.spillStacks(ammo_inventory, surface, position)
     
-    -- Spill cargo inventory
-    saveRestoreLib.spillStacks(cargo_inventory, surface, position)
+    -- Spill cargo inventory from the Script Inventory
+    for _,stack in pairs(cargo_inventory) do
+      surface.spill_item_stack{position=position, stack=stack, force=force, allow_belts=false}
+    end
     
     return nil
   end
