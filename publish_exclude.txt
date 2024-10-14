@@ -4,3 +4,5 @@
 example.png
 publish_exclude.txt
 .bat
+.gitattributes
+.exe
