@@ -142,8 +142,8 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
 
   -- Save its coupling state.  By default, created carriages couple to everything nearby, which we might have to undo
   --   if we're replacing after intentional uncoupling.
-  local back_was_connected = carriage.disconnect_rolling_stock(defines.rail_direction.back)
-  local front_was_connected = carriage.disconnect_rolling_stock(defines.rail_direction.front)
+  local back_was_connected = carriage.get_connected_rolling_stock(defines.rail_direction.back)
+  local front_was_connected = carriage.get_connected_rolling_stock(defines.rail_direction.front)
 
   -- Destroy the old Locomotive so we have space to make the new one
   if raiseDestroy == nil then raiseDestroy = true end
@@ -165,17 +165,17 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
   
     -- Restore coupling state (if we flipped the wagon, uncouple opposite sides)
     if flip then
-      if not front_was_connected then
+      if not front_was_connected and newCarriage.get_connected_rolling_stock(defines.rail_direction.front) then
         newCarriage.disconnect_rolling_stock(defines.rail_direction.back)
       end
-      if not back_was_connected then
+      if not back_was_connected and newCarriage.get_connected_rolling_stock(defines.rail_direction.back) then
         newCarriage.disconnect_rolling_stock(defines.rail_direction.front)
       end
     else
-      if not front_was_connected then
+      if not front_was_connected and newCarriage.get_connected_rolling_stock(defines.rail_direction.front) then
         newCarriage.disconnect_rolling_stock(defines.rail_direction.front)
       end
-      if not back_was_connected then
+      if not back_was_connected and newCarriage.get_connected_rolling_stock(defines.rail_direction.back) then
         newCarriage.disconnect_rolling_stock(defines.rail_direction.back)
       end
     end
@@ -188,7 +188,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     if last_user then newCarriage.last_user = last_user end
     if kills then newCarriage.kills = kills end
     if damage_dealt then newCarriage.damage_dealt = damage_dealt end
-    if artillery_auto_targeting then carriage.artillery_auto_targeting = artillery_auto_targeting end
+    if artillery_auto_targeting then newCarriage.artillery_auto_targeting = artillery_auto_targeting end
     newCarriage.minable = minable
     newCarriage.destructible = destructible
     newCarriage.operable = operable
