@@ -87,19 +87,21 @@ local function mapPipette(event,map)
     -- Check current contents of cursor
     local player = game.players[event.player_index]
     local cursor = player.cursor_stack
+    local cursor_ghost = player.cursor_ghost
+    local quality = (cursor.valid_for_read and cursor.quality) or (cursor_ghost and cursor_ghost.quality) or "normal"
     if cursor.valid_for_read then
       if map[cursor.name] then
         local inventory = player.get_main_inventory()
         local newName = map[cursor.name]
         if event.used_cheat_mode then
-          local newItemStack = inventory.find_item_stack({name=newName, quality=cursor.quality})
+          local newItemStack = inventory.find_item_stack({name=newName, quality=quality})
           if newItemStack then
             -- Delete cheat-gotten wrong items, load correct items from inventory
             cursor.set_stack(newItemStack)
             inventory.remove(newItemStack)
           else
             -- Delete cheat-gotten wrong items, cheat-give correct items
-            cursor.set_stack({name=newName, count=prototypes.item[newName].stack_size, quality=cursor.quality})
+            cursor.set_stack({name=newName, count=prototypes.item[newName].stack_size, quality=quality})
           end
         else
           -- Transform fairly-gotten wrong items into correct items
@@ -110,7 +112,8 @@ local function mapPipette(event,map)
       if not event.used_cheat_mode then
         local inventory = player.get_main_inventory()
         local newName = map[item.name]
-        local newItemStack = inventory.find_item_stack({name=newName, quality=cursor.quality})
+        log("mapping pipette "..tostring(item.name).." to "..tostring(newName).." with quality "..tostring(quality))
+        local newItemStack = inventory.find_item_stack({name=newName, quality=quality})
         if newItemStack then
           -- Load empty cursor with correct items from inventory
           cursor.set_stack(newItemStack)
