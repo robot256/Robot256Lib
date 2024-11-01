@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.0.3
+Date: 2024-11-01
+  Bugfixes:
+    - Fixed crash when replacing carriages with equipment grids.
+    - Fixed that equipment removal orders were not preserved.
+---------------------------------------------------------------------------------------------------
 Version: 2.0.2
 Date: 2024-11-01
   Bugfixes:

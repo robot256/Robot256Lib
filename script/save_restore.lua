@@ -298,11 +298,14 @@ local function saveGrid(grid)
     local gridContents = {}
     for _,v in pairs(grid.equipment) do
       local item = {
-        name = v.name or v.ghost_name,
+        name = v.name,
         position = v.position,
-        quality = v.quality,
-        ghost = (v.ghost_name and true) or nil
+        quality = v.quality
       }
+      if item.name == "equipment-ghost" then
+        item.name = v.ghost_name
+        item.ghost = true
+      end
       local burner = saveBurner(v.burner)
       local energy, shield, to_be_removed
       if v.energy > 0 then
@@ -345,6 +348,9 @@ local function restoreGrid(grid, savedGrid)
           if v.burner then
             local r1 = restoreBurner(e.burner,v.burner)
             r_stacks = mergeStackLists(r_stacks, r1)
+          end
+          if v.to_be_removed then
+            grid.order_removal(e)
           end
         else
           r_stacks = mergeStackLists(r_stacks, {{name=v.item.name, count=1}})
