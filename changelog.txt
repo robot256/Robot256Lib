@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.0.2
+Date: 2024-11-01
+  Bugfixes:
+    - Fixed that fuel insert requests were recreated out of order during carriage replacement.
+    - Fixed that fuel removal requests were lost during carriage replacement.
+---------------------------------------------------------------------------------------------------
 Version: 2.0.1
 Date: 2024-10-31
   Bugfixes:

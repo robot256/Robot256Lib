@@ -72,7 +72,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
   local grid_equipment = saveRestoreLib.saveGrid(carriage.grid)
 
   -- Save item requests left over from a blueprint
-  local item_requests = saveRestoreLib.saveItemRequestProxy(carriage)
+  local insert_plan, removal_plan = saveRestoreLib.saveItemRequestProxy(carriage)
   
   -- Save the burner progress, including heat and fuel item quality
   local saved_burner
@@ -95,8 +95,8 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
       end
     end
   end
-    
-    
+  
+  
   -- Save the kills stat for artillery wagons
   local kills, damage_dealt, artillery_auto_targeting
   if carriage.type == "artillery-wagon" then
@@ -260,8 +260,9 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     end
 
     -- Restore item_request_proxy by creating new ones
-    if item_requests then
-      surface.create_entity{name="item-request-proxy", position=position, force=force, target=newCarriage, modules=item_requests}
+    if #insert_plan>0 or #removal_plan>0 then
+      local newProxy = surface.create_entity{name="item-request-proxy", position=position, force=force, target=newCarriage,
+        modules=insert_plan, removal_plan=removal_plan}
     end
 
     -- After all that, fire an event so other scripts can reconnect to it

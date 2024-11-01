@@ -460,39 +460,33 @@ end
 
 local function saveItemRequestProxy(target)
   -- Search for item_request_proxy ghosts targeting this entity
-  -- In 2.0 there can be more than one, since each proxy actually targets a slot
+  -- There can be more than one, but there isn't usually
   local proxies = target.surface.find_entities_filtered{
             name = "item-request-proxy",
             force = target.force,
             position = target.position
           }
-  local requests = {}
-  local slot = 1
+  
+  -- Merge the requests from all the proxies targeting this entity
+  local insert_plan = {}
+  local removal_plan = {}
   for _, proxy in pairs(proxies) do
-    if proxy.proxy_target == target and proxy.valid then
-      local inventory_type
-      if target.type == "locomotive" then
-        inventory = defines.inventory.fuel
-      elseif target.type == "cargo-wagon" then
-        inventory = defines.inventory.cargo_wagon
-      elseif target.type == "artillery-wagon" then
-        inventory = defines.inventory.artillery_turret_ammo
-      elseif target.type == "car" then
-        inventory = defines.inventory.fuel
-      elseif target.type == "spider-vehicle" then
-        inventory = defines.inventory.fuel
+    if proxy.proxy_target == target then
+      local ip = proxy.insert_plan
+      if ip then
+        for _,plan in pairs(ip) do
+          insert_plan[#insert_plan+1] = plan
+        end
       end
-      for _,item in pairs(proxy.item_requests) do
-        local request = {id={name=item.name, quality=item.quality},
-                items={in_inventory={{inventory=inventory, stack=slot, count=item.count}}}}
-        slot = slot + 1
-        table.insert(requests, request)
+      local rp = proxy.removal_plan
+      if rp then
+        for _,plan in pairs(rp) do
+          removal_plan[#removal_plan+1] = plan
+        end
       end
     end
   end
-  if #requests > 0 then
-    return requests
-  end
+  return insert_plan, removal_plan
 end
 
 return {
