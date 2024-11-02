@@ -43,6 +43,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
   local rotatable = carriage.rotatable
   local enable_logistics_while_moving = carriage.enable_logistics_while_moving
   local quality = carriage.quality
+  local copy_color_from_train_stop = carriage.copy_color_from_train_stop
   
   -- Save deconstruction request by any force
   local deconstruction_request = nil
@@ -194,6 +195,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     newCarriage.operable = operable
     newCarriage.rotatable = rotatable
     newCarriage.enable_logistics_while_moving = enable_logistics_while_moving
+    newCarriage.copy_color_from_train_stop = copy_color_from_train_stop
     
     
     -- Restore the partially-used burner fuel
@@ -243,7 +245,6 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     end
 
     -- Restore the equipment grid
-    -- TODO: UPDATE FOR QUALITY
     if grid_equipment and newCarriage.grid and newCarriage.grid.valid then
       local remainders = saveRestoreLib.restoreGrid(newCarriage.grid, grid_equipment)
       saveRestoreLib.spillStacks(remainders, surface, position)
