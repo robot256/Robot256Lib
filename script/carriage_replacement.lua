@@ -137,8 +137,9 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
   -- Save the fluid wagon contents
   local fluid_contents = carriage.get_fluid_contents()
 
-  -- Save the train schedule.  If we are replacing a lone MU with a regular carriage, the train schedule will be lost when we delete it.
+  -- Save the train schedule and group.  If we are replacing a lone MU with a regular carriage, the train schedule and group will be lost when we delete it.
   local train_schedule = carriage.train.schedule
+  local train_group = carriage.train.group
   local manual_mode = carriage.train.manual_mode
 
   -- Save its coupling state.  By default, created carriages couple to everything nearby, which we might have to undo
@@ -282,6 +283,9 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
         newCarriage.train.schedule = train_schedule
       end
       -- If the saved schedule has no stops, do not write to train.schedule.  In 0.17.59, this will cause a script error.
+    end
+    if train_group then
+      newCarriage.train.group = train_group
     end
     newCarriage.train.manual_mode = manual_mode
     
