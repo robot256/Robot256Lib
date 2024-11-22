@@ -77,7 +77,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
   
   -- Save the burner progress, including heat and fuel item quality
   local saved_burner
-  if carriage.type == "locomotive" then
+  if carriage.type == "locomotive" and carriage.burner then
     local burner = carriage.burner
     saved_burner = {}
     saved_burner.currently_burning = burner.currently_burning  -- returns array[{name, count, quality}]
