@@ -37,7 +37,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
   local health = carriage.health
   local player_driving = carriage.get_driver()
   local last_user = carriage.last_user
-  local minable = carriage.minable
+  local minable = carriage.minable_flag
   local destructible = carriage.destructible
   local operable = carriage.operable
   local rotatable = carriage.rotatable
@@ -139,6 +139,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
 
   -- Save the train schedule and group.  If we are replacing a lone MU with a regular carriage, the train schedule and group will be lost when we delete it.
   local train_schedule = carriage.train.schedule
+  local destination = carriage.train.schedule.current
   local train_group = carriage.train.group
   local manual_mode = carriage.train.manual_mode
 
@@ -191,7 +192,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     if kills then newCarriage.kills = kills end
     if damage_dealt then newCarriage.damage_dealt = damage_dealt end
     if artillery_auto_targeting then newCarriage.artillery_auto_targeting = artillery_auto_targeting end
-    newCarriage.minable = minable
+    newCarriage.minable_flag = minable
     newCarriage.destructible = destructible
     newCarriage.operable = operable
     newCarriage.rotatable = rotatable
@@ -273,21 +274,21 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     end
 
     -- Restore the train schedule and mode
-    if train_schedule and train_schedule.records ~= nil then
-      local num_stops = 0
-      for k,v in pairs(train_schedule.records) do
-        num_stops = num_stops + 1
-      end
       -- If the schedule is not empty, assign it and restore manual/automatic mode
       if num_stops > 0 then
         newCarriage.train.schedule = train_schedule
       end
-      -- If the saved schedule has no stops, do not write to train.schedule.  In 0.17.59, this will cause a script error.
     end
-    if train_group then
+    if train_group and newCarriage.train.group ~= train_group then
       newCarriage.train.group = train_group
     end
     newCarriage.train.manual_mode = manual_mode
+    if manual_mode == false then
+      -- Send train to correct station in schedule
+      if destination <= table_size(newCarriage.train.schedule) and newCarriage.train.schedule.current ~= destination then
+        newCarriage.train.go_to_station(destination)
+      end
+    end
     
     -- Restore the GUI opened by players
     for _,p in pairs(opened_by_players) do
