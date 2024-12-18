@@ -274,8 +274,9 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     end
 
     -- Restore the train schedule and mode
+    if train_schedule and train_schedule.records then
       -- If the schedule is not empty, assign it and restore manual/automatic mode
-      if num_stops > 0 then
+      if table_size(train_schedule.records) > 0 and table_size(newCarriage.train.schedule.records) == 0 then
         newCarriage.train.schedule = train_schedule
       end
     end
