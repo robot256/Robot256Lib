@@ -1,4 +1,15 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.0.8
+Date: 2024-12-19
+  Bugfixes:
+    - Fix crash replacing rolling stock in train with no schedule.
+---------------------------------------------------------------------------------------------------
+Version: 2.0.7
+Date: 2024-12-17
+  Bugfixes:
+    - Fix accidentally-unminable rolling stock using new API feature in 2.0.26.
+    - Small improvement handling schedules and train groups.
+---------------------------------------------------------------------------------------------------
 Version: 2.0.6
 Date: 2024-11-22
   Bugfixes:

@@ -139,7 +139,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
 
   -- Save the train schedule and group.  If we are replacing a lone MU with a regular carriage, the train schedule and group will be lost when we delete it.
   local train_schedule = carriage.train.schedule
-  local destination = carriage.train.schedule.current
+  local destination = train_schedule and train_schedule.current
   local train_group = carriage.train.group
   local manual_mode = carriage.train.manual_mode
 
@@ -274,20 +274,21 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     end
 
     -- Restore the train schedule and mode
+    local newTrain = newCarriage.train
     if train_schedule and train_schedule.records then
       -- If the schedule is not empty, assign it and restore manual/automatic mode
-      if table_size(train_schedule.records) > 0 and table_size(newCarriage.train.schedule.records) == 0 then
-        newCarriage.train.schedule = train_schedule
+      if table_size(train_schedule.records) > 0 and (not newTrain.schedule or table_size(newTrain.schedule.records) == 0) then
+        newTrain.schedule = train_schedule
       end
     end
-    if train_group and newCarriage.train.group ~= train_group then
-      newCarriage.train.group = train_group
+    if train_group and newTrain.group ~= train_group then
+      newTrain.group = train_group
     end
-    newCarriage.train.manual_mode = manual_mode
-    if manual_mode == false then
+    newTrain.manual_mode = manual_mode
+    if manual_mode == false and destination and newTrain.schedule and newTrain.schedule.records then
       -- Send train to correct station in schedule
-      if destination <= table_size(newCarriage.train.schedule) and newCarriage.train.schedule.current ~= destination then
-        newCarriage.train.go_to_station(destination)
+      if newTrain.schedule.current ~= destination and destination <= table_size(newTrain.schedule.records) then
+        newTrain.go_to_station(destination)
       end
     end
     
