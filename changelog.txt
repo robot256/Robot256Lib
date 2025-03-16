@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.0.9
+Date: 2025-03-16
+  Bugfixes:
+    - Use new schedule API to make sure schedule records and interrupts are preserved during carriage replacement.
+---------------------------------------------------------------------------------------------------
 Version: 2.0.8
 Date: 2024-12-19
   Bugfixes:

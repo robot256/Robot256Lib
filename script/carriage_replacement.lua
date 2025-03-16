@@ -138,9 +138,11 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
   local fluid_contents = carriage.get_fluid_contents()
 
   -- Save the train schedule and group.  If we are replacing a lone MU with a regular carriage, the train schedule and group will be lost when we delete it.
-  local train_schedule = carriage.train.schedule
-  local destination = train_schedule and train_schedule.current
   local train_group = carriage.train.group
+  local old_schedule = carriage.train.get_schedule()
+  local train_schedule_records = old_schedule.get_records()
+  local train_schedule_interrupts = old_schedule.get_interrupts()
+  local destination = old_schedule.current
   local manual_mode = carriage.train.manual_mode
 
   -- Save its coupling state.  By default, created carriages couple to everything nearby, which we might have to undo
@@ -275,20 +277,26 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
 
     -- Restore the train schedule and mode
     local newTrain = newCarriage.train
-    if train_schedule and train_schedule.records then
-      -- If the schedule is not empty, assign it and restore manual/automatic mode
-      if table_size(train_schedule.records) > 0 and (not newTrain.schedule or table_size(newTrain.schedule.records) == 0) then
-        newTrain.schedule = train_schedule
-      end
-    end
-    if train_group and newTrain.group ~= train_group then
+    local newSchedule = newTrain.get_schedule()
+    -- First assign the group, if any
+    if train_group then
       newTrain.group = train_group
+      -- This will set the basic schedule and interrupts
+      -- We still need to restore the schedule to include any temporary stops specific to this train
+      newSchedule.set_records(train_schedule_records)
+    else
+      -- No group, set both records and interrupts
+      newSchedule.set_records(train_schedule_records)
+      newSchedule.set_interrupts(train_schedule_interrupts)
     end
+    
     newTrain.manual_mode = manual_mode
-    if manual_mode == false and destination and newTrain.schedule and newTrain.schedule.records then
-      -- Send train to correct station in schedule
-      if newTrain.schedule.current ~= destination and destination <= table_size(newTrain.schedule.records) then
+    -- Send train to correct station in schedule
+    if newTrain.schedule.current ~= destination and destination <= table_size(newTrain.schedule.records) then
+      if manual_mode == false then
         newTrain.go_to_station(destination)
+      else
+        newSchedule.current = destination
       end
     end
     
