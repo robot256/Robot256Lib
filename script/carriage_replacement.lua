@@ -293,10 +293,9 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     newTrain.manual_mode = manual_mode
     -- Send train to correct station in schedule
     if newSchedule.current ~= destination and destination <= newSchedule.get_record_count() then
-      if manual_mode == false then
-        newTrain.go_to_station(destination)
-      else
-        newSchedule.current = destination
+      newTrain.go_to_station(destination)
+      if manual_mode then
+        newTrain.manual_mode = true
       end
     end
     
