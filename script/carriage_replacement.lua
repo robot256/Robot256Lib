@@ -9,6 +9,7 @@
  *             raiseBuilt (optional): whether or not to issue script_raised_built when done creating the new carriage
  *             raiseDestroy (optional): whether or not to issue script_raised_destroy when destroying the old carriage
  *             flip (optional): whether to rotate the replacement carriage 180 degrees relative to the original
+ *             newQuality (optional): the quality level to assign to the new carriage, defaults to the quality of the original carriage
  * Returns: newCarriage entity if successful, nil if unsuccessful
  * Dependencies: saveGrid,
  *               restoreGrid,
@@ -25,7 +26,7 @@
 local saveRestoreLib = require("__Robot256Lib__/script/save_restore")
 
 
-local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip)
+local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip, newQuality)
 
   -- Save basic parameters
   local position = carriage.position
@@ -42,7 +43,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
   local operable = carriage.operable
   local rotatable = carriage.rotatable
   local enable_logistics_while_moving = carriage.enable_logistics_while_moving
-  local quality = carriage.quality
+  local quality = newQuality or carriage.quality
   local copy_color_from_train_stop = carriage.copy_color_from_train_stop
   
   -- Save deconstruction request by any force
