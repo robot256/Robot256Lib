@@ -313,7 +313,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     -- Spill Wagon and Contents on Ground!
     
     -- Spill carriage item
-    saveRestoreLib.spillStack({name=newName, count=1}, surface, position)
+    saveRestoreLib.spillStack({name=newName, quality=quality, count=1}, surface, position)
     
     -- Spill burner contents
     local r = saveRestoreLib.restoreBurner(nil, saved_burner)
