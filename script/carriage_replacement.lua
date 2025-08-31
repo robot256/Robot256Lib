@@ -36,6 +36,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
   local backer_name = carriage.backer_name
   local color = carriage.color
   local health = carriage.health
+  local max_health = carriage.max_health
   local player_driving = carriage.get_driver()
   local last_user = carriage.last_user
   local minable = carriage.minable_flag
@@ -188,7 +189,9 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
 
 
     -- Restore parameters
-    newCarriage.health = health
+    if newCarriage.max_health == max_health then
+      newCarriage.health = health
+    end
     if color then newCarriage.color = color end
     if backer_name then newCarriage.backer_name = backer_name end
     if last_user then newCarriage.last_user = last_user end
