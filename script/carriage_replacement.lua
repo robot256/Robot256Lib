@@ -249,7 +249,7 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
 
     -- Restore the fluid wagon contents
     for fluid,amount in pairs(fluid_contents) do
-      newCarriage.insert_fluid(fluid,amount)
+      newCarriage.insert_fluid({name=fluid, amount=amount})
     end
 
     -- Restore the equipment grid
