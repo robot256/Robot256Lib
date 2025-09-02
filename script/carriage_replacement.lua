@@ -137,7 +137,12 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
   end
   
   -- Save the fluid wagon contents
-  local fluid_contents = carriage.get_fluid_contents()
+  local fluid_contents = []
+  if carriage.fluidbox and #carriage.fluidbox > 0 then
+    for k = 1,#carriage.fluidbox do
+      fluid_contents[k] = carriage.fluidbox[k]
+    end
+  end
 
   -- Save the train schedule and group.  If we are replacing a lone MU with a regular carriage, the train schedule and group will be lost when we delete it.
   local train_group = carriage.train.group
@@ -248,8 +253,12 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     end
 
     -- Restore the fluid wagon contents
-    for fluid,amount in pairs(fluid_contents) do
-      newCarriage.insert_fluid({name=fluid, amount=amount})
+    if newCarriage.fluidbox and #newCarriage.fluidbox > 0 then
+      for k,fluid in pairs(fluid_contents) do
+        if k <= #newCarriage.fluidbox then
+          newCarriage.fluidbox[k] = fluid
+        end
+      end
     end
 
     -- Restore the equipment grid
