@@ -287,12 +287,19 @@ local function replaceCarriage(carriage, newName, raiseBuilt, raiseDestroy, flip
     local newSchedule = newTrain.get_schedule()
     -- First assign the group, if any
     if train_group then
+      -- Group will set the basic schedule and interrupts
       newTrain.group = train_group
-      -- This will set the basic schedule and interrupts
-      -- We still need to restore the schedule to include any temporary stops specific to this train
-      newSchedule.set_records(train_schedule_records)
+      -- We still need to restore the schedule to include any temporary stops specific to this train.
+      -- Add entries individually to avoid affecting other trains in the group.
+      for k=1,#train_schedule_records do
+        local record = train_schedule_records[k]
+        if record.temporary then
+          record.index = {schedule_index=k}
+          newSchedule.add_record(record)
+        end
+      end
     else
-      -- No group, set both records and interrupts
+      -- No group, set both records and interrupts as bulk writes
       newSchedule.set_records(train_schedule_records)
       newSchedule.set_interrupts(train_schedule_interrupts)
     end
