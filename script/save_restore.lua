@@ -170,7 +170,7 @@ end
 ---------------------------------------------------------------
 local function spillStack(stack, surface, position)
   if stack then
-    surface.spill_item_stack(position, stack)
+    surface.spill_item_stack{position=position, stack=stack, allow_belts=false}
     if stack.data then
       -- This is a bp item, find it on the surface and restore data
       for _,entity in pairs(surface.find_entities_filtered{name="item-on-ground",position=position,radius=1000}) do
