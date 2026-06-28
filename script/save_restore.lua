@@ -253,6 +253,42 @@ local function insertInventoryStacks(target, stacks)
 end
 
 
+
+local function saveFilters(source)
+  local filters = nil
+  if source and source.valid then
+    if source.is_filtered() then
+      filters = {}
+      for f = 1, #source do
+        filters[f] = source.get_filter(f)
+      end
+    end
+    if source.supports_bar() and source.get_bar() <= #source then
+      filters = filters or {}
+      filters.bar = source.get_bar()
+    end
+  end
+  return filters
+end
+
+local function restoreFilters(target, filters)
+  if target and target.valid and filters then
+    if target.supports_filters() then
+      for f = 1, #target do
+        target.set_filter(f, filters[f])
+      end
+    end
+    if target.supports_bar() then
+      if not filters.bar then
+        target.set_bar()
+      else
+        target.set_bar(filters.bar)  -- if filters.bar is nil, will clear bar setting
+      end
+    end
+  end
+end
+
+
 local function saveBurner(burner)
   if burner and burner.valid then
     local saved = {heat = burner.heat}
@@ -263,9 +299,11 @@ local function saveBurner(burner)
     end
     if burner.inventory and burner.inventory.valid then
       saved.inventory = burner.inventory.get_contents()
+      saved.filters = saveFilters(burner.inventory)
     end
     if burner.burnt_result_inventory and burner.burnt_result_inventory.valid then
       saved.burnt_result_inventory = burner.burnt_result_inventory.get_contents()
+      saved.burnt_results_filters = saveFilters(burner.burnt_result_inventory)
     end
     return saved
   end
@@ -292,6 +330,8 @@ local function restoreBurner(target, saved)
         end
       end
     end
+    restoreFilters(target.inventory, saved.filters)
+    restoreFilters(target.burnt_result_inventory, saved.burnt_result_filters)
     local r1 = insertInventoryStacks(target.inventory, saved.inventory)
     local r2 = insertInventoryStacks(target.burnt_result_inventory, saved.burnt_result_inventory)
     return mergeStackLists(r1, r2)
@@ -439,40 +479,6 @@ end
 
 __saveGridStacks__ = saveGridStacks
 
-
-local function saveFilters(source)
-  local filters = nil
-  if source and source.valid then
-    if source.is_filtered() then
-      filters = {}
-      for f = 1, #source do
-        filters[f] = source.get_filter(f)
-      end
-    end
-    if source.supports_bar() and source.get_bar() <= #source then
-      filters = filters or {}
-      filters.bar = source.get_bar()
-    end
-  end
-  return filters
-end
-
-local function restoreFilters(target, filters)
-  if target and target.valid and filters then
-    if target.supports_filters() then
-      for f = 1, #target do
-        target.set_filter(f, filters[f])
-      end
-    end
-    if target.supports_bar() then
-      if not filters.bar then
-        target.set_bar()
-      else
-        target.set_bar(filters.bar)  -- if filters.bar is nil, will clear bar setting
-      end
-    end
-  end
-end
 
 
 local function saveItemRequestProxy(target)
