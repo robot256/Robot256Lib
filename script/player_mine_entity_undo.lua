@@ -10,12 +10,12 @@ local function player_mine_entity_undo(player, entity, undo_index, raise_destroy
   -- Transfer all the items out of the entity and leave item ghosts in place
   -- This way the undo entry will have item ghosts stored in it
   local temp_inventory = game.create_inventory(1)
+  local insert_plan = {}
   for k=1,entity.get_max_inventory_index() do
     local inv = entity.get_inventory(k)
     if inv and not inv.is_empty() then
       -- Add to or create proxy
       local proxy = entity.item_request_proxy
-      local insert_plan = {}
       if proxy then
         insert_plan = proxy.insert_plan
       end
