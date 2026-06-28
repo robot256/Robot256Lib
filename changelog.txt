@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 2.1.0
+Date: 2026-06-28
+  Changes:
+    - Updated for Factorio 2.1.
+    - Added new function player_mine_entity_undo() that mostly replicates LuaPlayer::mine_entity() with the addition of the undo_index parameter. This allows mining an item to a player's inventory and also adding it to an existing undo stack item.
+---------------------------------------------------------------------------------------------------
 Version: 2.0.16
 Date: 2026-06-25
   Bugfixes:
